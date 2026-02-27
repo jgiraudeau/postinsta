@@ -116,12 +116,18 @@ export default function GeneratePage() {
       clearTimeout(timeout);
       stopTimer();
 
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error('Le serveur a mis trop de temps (timeout Vercel). Réessayez.');
+      }
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Erreur serveur' }));
         throw new Error(data.error || 'Erreur de génération');
       }
 
-      const data = await res.json();
       setResult(`Terminé ! ${data.count || 0} posts planifiés.`);
       setProgress('');
       setStep('idle');

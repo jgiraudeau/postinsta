@@ -11,7 +11,7 @@ export async function generateCalendar(profile: ClientProfile): Promise<Calendar
   const prompt = calendarPrompt(profile);
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -40,7 +40,7 @@ export async function generateCaption(
   const prompt = captionPrompt(profile, entry);
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   });
