@@ -28,7 +28,7 @@ export default function GeneratePage() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
-  async function generate(type: Step) {
+  async function generate(type: Exclude<Step, 'idle'>) {
     setStep(type);
     setError('');
     setResult('');
