@@ -13,7 +13,7 @@ export default function GeneratePage() {
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [result, setResult] = useState('');
-  const [imageProgress, setImageProgress] = useState({ done: 0, total: 0 });
+  const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -29,16 +29,18 @@ export default function GeneratePage() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
-  async function generateImages() {
-    setStep('images');
+  // Génération un par un (légendes et images)
+  async function generateBatch(type: 'captions' | 'images') {
+    const label = type === 'images' ? 'images' : 'légendes';
+    setStep(type);
     setError('');
     setResult('');
+    setBatchProgress({ done: 0, total: 0 });
     startTimer();
-    setProgress('Récupération des posts à illustrer...');
+    setProgress(`Récupération des ${label} à générer...`);
 
     try {
-      // 1. Récupérer la liste des images à générer
-      const listRes = await fetch('/api/generate/images', {
+      const listRes = await fetch(`/api/generate/${type}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: id }),
@@ -52,37 +54,35 @@ export default function GeneratePage() {
       const { pending, total } = await listRes.json();
       if (total === 0) {
         stopTimer();
-        setResult('Aucune image à générer.');
+        setResult(`Aucune ${type === 'images' ? 'image' : 'légende'} à générer.`);
         setProgress('');
         setStep('idle');
         return;
       }
 
-      setImageProgress({ done: 0, total });
+      setBatchProgress({ done: 0, total });
 
-      // 2. Générer une image à la fois
       let done = 0;
       for (const item of pending) {
-        setProgress(`Image ${done + 1}/${total} : "${item.titre}"...`);
+        setProgress(`${type === 'images' ? 'Image' : 'Légende'} ${done + 1}/${total} : "${item.titre}"...`);
 
-        const res = await fetch('/api/generate/images', {
+        const res = await fetch(`/api/generate/${type}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clientId: id, row: item.row }),
         });
 
         if (!res.ok) {
-          const data = await res.json();
-          console.error(`Erreur image row ${item.row}:`, data.error);
-          // Continue avec les autres images
+          const data = await res.json().catch(() => ({ error: 'Erreur serveur' }));
+          console.error(`Erreur ${type} row ${item.row}:`, data.error);
         }
 
         done++;
-        setImageProgress({ done, total });
+        setBatchProgress({ done, total });
       }
 
       stopTimer();
-      setResult(`Terminé ! ${done} image${done > 1 ? 's' : ''} générée${done > 1 ? 's' : ''}.`);
+      setResult(`Terminé ! ${done} ${label} générée${done > 1 ? 's' : ''}.`);
       setProgress('');
       setStep('idle');
     } catch (err) {
@@ -93,23 +93,20 @@ export default function GeneratePage() {
     }
   }
 
-  async function generate(type: Exclude<Step, 'idle' | 'images'>) {
-    setStep(type);
+  // Calendrier : un seul appel (assez rapide)
+  async function generateCalendar() {
+    setStep('calendar');
     setError('');
     setResult('');
+    setBatchProgress({ done: 0, total: 0 });
     startTimer();
-
-    const labels = {
-      calendar: 'du calendrier',
-      captions: 'des légendes',
-    };
-    setProgress(`Génération ${labels[type]}...`);
+    setProgress('Génération du calendrier...');
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 
-      const res = await fetch(`/api/generate/${type}`, {
+      const res = await fetch('/api/generate/calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId: id }),
@@ -120,12 +117,12 @@ export default function GeneratePage() {
       stopTimer();
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: 'Erreur serveur' }));
         throw new Error(data.error || 'Erreur de génération');
       }
 
       const data = await res.json();
-      setResult(`Terminé ! ${data.count || 0} éléments générés.`);
+      setResult(`Terminé ! ${data.count || 0} posts planifiés.`);
       setProgress('');
       setStep('idle');
     } catch (err) {
@@ -154,7 +151,7 @@ export default function GeneratePage() {
             Génère les thèmes, titres et dates pour le mois à venir
           </p>
           <button
-            onClick={() => generate('calendar')}
+            onClick={() => generateCalendar()}
             disabled={step !== 'idle'}
             className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
@@ -165,10 +162,10 @@ export default function GeneratePage() {
         <div className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-semibold">2. Légendes & hashtags</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Génère les textes pour tous les posts du calendrier
+            Génère les textes un par un pour chaque post
           </p>
           <button
-            onClick={() => generate('captions')}
+            onClick={() => generateBatch('captions')}
             disabled={step !== 'idle'}
             className="mt-3 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
           >
@@ -182,7 +179,7 @@ export default function GeneratePage() {
             Génère les visuels un par un (environ 7s par image)
           </p>
           <button
-            onClick={() => generateImages()}
+            onClick={() => generateBatch('images')}
             disabled={step !== 'idle'}
             className="mt-3 rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
           >
@@ -197,20 +194,20 @@ export default function GeneratePage() {
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
             <span className="text-sm text-blue-700">{progress}</span>
           </div>
-          {imageProgress.total > 0 && (
+          {batchProgress.total > 0 && (
             <div className="mt-3">
               <div className="h-2 w-full rounded-full bg-blue-200">
                 <div
                   className="h-2 rounded-full bg-blue-600 transition-all"
-                  style={{ width: `${(imageProgress.done / imageProgress.total) * 100}%` }}
+                  style={{ width: `${(batchProgress.done / batchProgress.total) * 100}%` }}
                 />
               </div>
               <p className="mt-1 text-xs text-blue-500">
-                {imageProgress.done}/{imageProgress.total} images — {elapsed}s écoulées
+                {batchProgress.done}/{batchProgress.total} — {elapsed}s écoulées
               </p>
             </div>
           )}
-          {imageProgress.total === 0 && (
+          {batchProgress.total === 0 && (
             <p className="mt-2 text-xs text-blue-500">{elapsed}s écoulées...</p>
           )}
         </div>
