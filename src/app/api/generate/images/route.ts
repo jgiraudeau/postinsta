@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getClientById, readProfile, readCalendar, updateEntry } from '@/lib/sheets';
 import { generateImage } from '@/lib/image-gen';
 
+export const maxDuration = 300; // 5 minutes max (nécessite plan Pro Vercel)
+
 export async function POST(request: Request) {
   try {
     const { clientId } = await request.json();

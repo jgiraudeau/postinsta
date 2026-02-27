@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getClientById, readProfile, readCalendar, updateEntry } from '@/lib/sheets';
 import { generateCaption } from '@/lib/claude';
 
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   try {
     const { clientId } = await request.json();
