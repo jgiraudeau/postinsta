@@ -13,6 +13,7 @@ export default function GeneratePage() {
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
   const [result, setResult] = useState('');
+  const [imageProgress, setImageProgress] = useState({ done: 0, total: 0 });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -28,7 +29,71 @@ export default function GeneratePage() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
-  async function generate(type: Exclude<Step, 'idle'>) {
+  async function generateImages() {
+    setStep('images');
+    setError('');
+    setResult('');
+    startTimer();
+    setProgress('Récupération des posts à illustrer...');
+
+    try {
+      // 1. Récupérer la liste des images à générer
+      const listRes = await fetch('/api/generate/images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: id }),
+      });
+
+      if (!listRes.ok) {
+        const data = await listRes.json();
+        throw new Error(data.error || 'Erreur');
+      }
+
+      const { pending, total } = await listRes.json();
+      if (total === 0) {
+        stopTimer();
+        setResult('Aucune image à générer.');
+        setProgress('');
+        setStep('idle');
+        return;
+      }
+
+      setImageProgress({ done: 0, total });
+
+      // 2. Générer une image à la fois
+      let done = 0;
+      for (const item of pending) {
+        setProgress(`Image ${done + 1}/${total} : "${item.titre}"...`);
+
+        const res = await fetch('/api/generate/images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: id, row: item.row }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          console.error(`Erreur image row ${item.row}:`, data.error);
+          // Continue avec les autres images
+        }
+
+        done++;
+        setImageProgress({ done, total });
+      }
+
+      stopTimer();
+      setResult(`Terminé ! ${done} image${done > 1 ? 's' : ''} générée${done > 1 ? 's' : ''}.`);
+      setProgress('');
+      setStep('idle');
+    } catch (err) {
+      stopTimer();
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setStep('idle');
+      setProgress('');
+    }
+  }
+
+  async function generate(type: Exclude<Step, 'idle' | 'images'>) {
     setStep(type);
     setError('');
     setResult('');
@@ -37,13 +102,12 @@ export default function GeneratePage() {
     const labels = {
       calendar: 'du calendrier',
       captions: 'des légendes',
-      images: 'des images (peut prendre plusieurs minutes)',
     };
     setProgress(`Génération ${labels[type]}...`);
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 min timeout
+      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 
       const res = await fetch(`/api/generate/${type}`, {
         method: 'POST',
@@ -115,10 +179,10 @@ export default function GeneratePage() {
         <div className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-semibold">3. Images</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Génère les visuels pour tous les posts (environ 7s par image)
+            Génère les visuels un par un (environ 7s par image)
           </p>
           <button
-            onClick={() => generate('images')}
+            onClick={() => generateImages()}
             disabled={step !== 'idle'}
             className="mt-3 rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
           >
@@ -133,7 +197,22 @@ export default function GeneratePage() {
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
             <span className="text-sm text-blue-700">{progress}</span>
           </div>
-          <p className="mt-2 text-xs text-blue-500">{elapsed}s écoulées...</p>
+          {imageProgress.total > 0 && (
+            <div className="mt-3">
+              <div className="h-2 w-full rounded-full bg-blue-200">
+                <div
+                  className="h-2 rounded-full bg-blue-600 transition-all"
+                  style={{ width: `${(imageProgress.done / imageProgress.total) * 100}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-blue-500">
+                {imageProgress.done}/{imageProgress.total} images — {elapsed}s écoulées
+              </p>
+            </div>
+          )}
+          {imageProgress.total === 0 && (
+            <p className="mt-2 text-xs text-blue-500">{elapsed}s écoulées...</p>
+          )}
         </div>
       )}
       {result && (
