@@ -2,8 +2,11 @@ node_modules
 /.next/
 /out/
 .DS_Store
+.env
 .env*.local
 .vercel
 *.tsbuildinfo
 next-env.d.ts
 /public/images/*.png
+
+/src/generated/prisma

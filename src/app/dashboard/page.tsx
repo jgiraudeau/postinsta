@@ -2,32 +2,73 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Client } from '@/types';
 
+interface UserInfo {
+  id: string;
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'USER';
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/clients')
-      .then((r) => r.json())
-      .then((data) => {
-        setClients(data.clients || []);
+    Promise.all([
+      fetch('/api/auth/me').then((r) => r.json()),
+      fetch('/api/clients').then((r) => r.json()),
+    ])
+      .then(([userData, clientsData]) => {
+        setUser(userData);
+        setClients(clientsData.clients || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">PostInsta</h1>
-        <Link
-          href="/client/new"
-          className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-        >
-          + Nouveau client
-        </Link>
+        <div>
+          <h1 className="text-3xl font-bold">PostInsta</h1>
+          {user && (
+            <p className="text-sm text-gray-500 mt-1">
+              {user.name} {user.role === 'ADMIN' && <span className="text-purple-600 font-medium">(Admin)</span>}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {user?.role === 'ADMIN' && (
+            <Link
+              href="/admin/users"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Utilisateurs
+            </Link>
+          )}
+          <Link
+            href="/client/new"
+            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          >
+            + Nouveau client
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            Déconnexion
+          </button>
+        </div>
       </div>
 
       {loading ? (

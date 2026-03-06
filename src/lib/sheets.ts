@@ -25,30 +25,36 @@ function slug(name: string): string {
 
 // === Liste des clients (onglet "Clients") ===
 
-export async function getClients(): Promise<Client[]> {
+export async function getClients(userId?: string): Promise<Client[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'Clients!A2:E',
+    range: 'Clients!A2:F',
   });
   const rows = res.data.values || [];
-  return rows.map((row) => ({
+  const clients = rows.map((row) => ({
     id: row[0],
     name: row[1],
     sheetId: row[2],       // slug du client (sert de préfixe d'onglet)
     viewToken: row[3],
     createdAt: row[4],
+    userId: row[5] || '',
   }));
+
+  if (userId) {
+    return clients.filter((c) => c.userId === userId);
+  }
+  return clients;
 }
 
 export async function addClient(client: Client): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: 'Clients!A:E',
+    range: 'Clients!A:F',
     valueInputOption: 'RAW',
     requestBody: {
-      values: [[client.id, client.name, client.sheetId, client.viewToken, client.createdAt]],
+      values: [[client.id, client.name, client.sheetId, client.viewToken, client.createdAt, client.userId]],
     },
   });
 }
@@ -61,6 +67,12 @@ export async function getClientByToken(token: string): Promise<Client | null> {
 export async function getClientById(id: string): Promise<Client | null> {
   const clients = await getClients();
   return clients.find((c) => c.id === id) ?? null;
+}
+
+export async function canAccessClient(clientId: string, userId: string, isAdmin: boolean): Promise<boolean> {
+  if (isAdmin) return true;
+  const client = await getClientById(clientId);
+  return client?.userId === userId;
 }
 
 // === Profil client (onglet "Profil_{slug}") ===

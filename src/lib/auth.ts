@@ -1,21 +1,29 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import { prisma } from './prisma';
+import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'dev-secret');
 
-export async function createToken(): Promise<string> {
-  return new SignJWT({ role: 'admin' })
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  role: 'ADMIN' | 'USER';
+}
+
+export async function createToken(user: JWTPayload): Promise<string> {
+  return new SignJWT({ userId: user.userId, email: user.email, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
     .sign(JWT_SECRET);
 }
 
-export async function verifyToken(token: string): Promise<boolean> {
+export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    await jwtVerify(token, JWT_SECRET);
-    return true;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload as unknown as JWTPayload;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -24,15 +32,26 @@ export async function getAuthToken(): Promise<string | null> {
   return cookieStore.get('auth_token')?.value ?? null;
 }
 
-export async function isAuthenticated(): Promise<boolean> {
+export async function getCurrentUser(): Promise<JWTPayload | null> {
   const token = await getAuthToken();
-  if (!token) return false;
+  if (!token) return null;
   return verifyToken(token);
 }
 
-export function checkCredentials(email: string, password: string): boolean {
-  return (
-    email === process.env.ADMIN_EMAIL &&
-    password === process.env.ADMIN_PASSWORD
-  );
+export async function isAuthenticated(): Promise<boolean> {
+  return (await getCurrentUser()) !== null;
+}
+
+export async function authenticateUser(email: string, password: string): Promise<JWTPayload | null> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return null;
+
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) return null;
+
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
 }

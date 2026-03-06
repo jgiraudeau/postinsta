@@ -5,6 +5,7 @@ export interface Client {
   name: string;
   sheetId: string;
   viewToken: string;
+  userId: string;
   createdAt: string;
 }
 
