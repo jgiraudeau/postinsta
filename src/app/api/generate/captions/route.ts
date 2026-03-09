@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientById, readProfile, readCalendar, updateEntry } from '@/lib/sheets';
+import { getClientById, readProfile, readCalendar, updateEntry } from '@/lib/airtable';
 import { generateCaption } from '@/lib/claude';
 
 export const maxDuration = 60;

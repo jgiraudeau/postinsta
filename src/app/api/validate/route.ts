@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientById, updateEntry } from '@/lib/sheets';
+import { getClientById, updateEntry } from '@/lib/airtable';
 
 export async function POST(request: Request) {
   try {

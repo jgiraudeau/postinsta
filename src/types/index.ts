@@ -27,6 +27,7 @@ export interface ClientProfile {
 
 export interface CalendarEntry {
   row?: number;
+  airtableId?: string;
   date: string;
   type: string;
   theme: string;
@@ -37,6 +38,7 @@ export interface CalendarEntry {
   image_url: string;
   statut: 'brouillon' | 'validé' | 'rejeté' | 'publié';
   feedback: string;
+  visuels_client?: string[];
 }
 
 export interface CaptionResult {

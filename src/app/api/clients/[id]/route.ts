@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientById, readProfile, readCalendar, canAccessClient } from '@/lib/sheets';
+import { getClientById, readProfile, readCalendar, canAccessClient } from '@/lib/airtable';
 import { requireAuth } from '@/lib/request-helpers';
 
 export async function GET(

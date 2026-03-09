@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClients, addClient, createClientTabs, writeProfile } from '@/lib/sheets';
+import { getClients, addClient, createClientTabs, writeProfile } from '@/lib/airtable';
 import { requireAuth } from '@/lib/request-helpers';
 import type { ClientProfile } from '@/types';
 import { randomUUID } from 'crypto';
