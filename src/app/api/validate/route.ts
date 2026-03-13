@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getClientById, updateEntry } from '@/lib/airtable';
+import * as db from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
     const { clientId, row, statut } = await request.json();
 
-    const client = await getClientById(clientId);
+    const client = await db.getClientById(clientId);
     if (!client) {
       return NextResponse.json({ error: 'Client non trouvé' }, { status: 404 });
     }
 
-    await updateEntry(client.sheetId, row, { statut });
+    await db.updateEntry(client, row, { statut });
 
     return NextResponse.json({ success: true });
   } catch (error) {

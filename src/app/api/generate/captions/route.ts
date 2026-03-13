@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientById, readProfile, readCalendar, updateEntry } from '@/lib/airtable';
+import * as db from '@/lib/db';
 import { generateCaption } from '@/lib/claude';
 
 export const maxDuration = 60;
@@ -8,14 +8,14 @@ export async function POST(request: Request) {
   try {
     const { clientId, row } = await request.json();
 
-    const client = await getClientById(clientId);
+    const client = await db.getClientById(clientId);
     if (!client) {
       return NextResponse.json({ error: 'Client non trouvé' }, { status: 404 });
     }
 
-    const profile = await readProfile(client.sheetId);
-    const calendar = await readCalendar(client.sheetId);
-    const toGenerate = calendar.filter((e) => !e.legende && e.statut !== 'rejeté');
+    const profile = await db.readProfile(client);
+    const calendar = await db.readCalendar(client);
+    const toGenerate = calendar.filter((e) => !e.legende.trim() && e.statut !== 'rejeté');
 
     // Mode listing : retourne les rows à traiter
     if (!row) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const caption = await generateCaption(profile, entry);
-    await updateEntry(client.sheetId, entry.row!, {
+    await db.updateEntry(client, entry.row!, {
       legende: caption.legende,
       hashtags: caption.hashtags,
     });

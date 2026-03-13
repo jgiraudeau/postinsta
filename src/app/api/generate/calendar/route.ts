@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientById, readProfile, writeCalendar } from '@/lib/airtable';
+import * as db from '@/lib/db';
 import { generateCalendar } from '@/lib/claude';
 
 export const maxDuration = 60;
@@ -8,14 +8,14 @@ export async function POST(request: Request) {
   try {
     const { clientId } = await request.json();
 
-    const client = await getClientById(clientId);
+    const client = await db.getClientById(clientId);
     if (!client) {
       return NextResponse.json({ error: 'Client non trouvé' }, { status: 404 });
     }
 
-    const profile = await readProfile(client.sheetId);
+    const profile = await db.readProfile(client);
     const entries = await generateCalendar(profile);
-    await writeCalendar(client.sheetId, entries);
+    await db.writeCalendar(client, entries);
 
     return NextResponse.json({ entries, count: entries.length });
   } catch (error) {

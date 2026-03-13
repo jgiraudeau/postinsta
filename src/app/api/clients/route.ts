@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getClients, addClient, createClientTabs, writeProfile } from '@/lib/airtable';
+import * as db from '@/lib/db';
 import { requireAuth } from '@/lib/request-helpers';
-import type { ClientProfile } from '@/types';
+import type { ClientProfile, Client } from '@/types';
 import { randomUUID } from 'crypto';
 
 export async function GET() {
   try {
     const user = await requireAuth();
     const userId = user.role === 'ADMIN' ? undefined : user.userId;
-    const clients = await getClients(userId);
+    const clients = await db.getClients(userId);
     return NextResponse.json({ clients });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -22,23 +22,24 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
-    const { name, profile } = (await request.json()) as {
+    const { name, profile, source } = (await request.json()) as {
       name: string;
       profile: ClientProfile;
+      source?: 'sheets' | 'airtable';
     };
 
-    const clientSlug = await createClientTabs(name);
-    await writeProfile(clientSlug, profile);
-
-    const client = {
+    const client: Client = {
       id: randomUUID(),
       name,
-      sheetId: clientSlug,
+      sheetId: name, // slug ou name
       viewToken: randomUUID(),
       userId: user.userId,
       createdAt: new Date().toISOString(),
+      source: source || 'sheets',
     };
-    await addClient(client);
+
+    await db.addClient(client);
+    await db.writeProfile(client, profile);
 
     return NextResponse.json({ client });
   } catch (error) {

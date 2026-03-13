@@ -3,12 +3,25 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import type { CalendarEntry } from '@/types';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  MessageSquare, 
+  Calendar as CalendarIcon, 
+  Instagram, 
+  Clock, 
+  Image as ImageIcon,
+  ChevronRight,
+  Send,
+  Check,
+  X
+} from 'lucide-react';
 
-const STATUS_COLORS: Record<string, string> = {
-  brouillon: 'bg-yellow-100 text-yellow-800',
-  validé: 'bg-green-100 text-green-800',
-  rejeté: 'bg-red-100 text-red-800',
-  publié: 'bg-blue-100 text-blue-800',
+const STATUS_CONFIG: Record<string, { color: string; label: string; icon: any }> = {
+  brouillon: { color: 'bg-amber-100 text-amber-700 border-amber-200', label: 'À valider', icon: Clock },
+  validé: { color: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Approuvé', icon: CheckCircle2 },
+  rejeté: { color: 'bg-rose-100 text-rose-700 border-rose-200', label: 'À revoir', icon: XCircle },
+  publié: { color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Publié', icon: Instagram },
 };
 
 export default function ClientViewPage() {
@@ -17,19 +30,21 @@ export default function ClientViewPage() {
   const [clientName, setClientName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [feedbackRow, setFeedbackRow] = useState<number | null>(null);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [sending, setSending] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
+  
+  const [commentingRow, setCommentingRow] = useState<number | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [submitting, setSubmitting] = useState<number | null>(null); // row number
 
   useEffect(() => {
     fetch(`/api/calendar/${token}`)
       .then((r) => {
-        if (!r.ok) throw new Error('Lien invalide');
+        if (!r.ok) throw new Error('Lien de partage invalide ou expiré');
         return r.json();
       })
       .then((data) => {
         setEntries(data.calendar || []);
-        setClientName(data.clientName || '');
+        setClientName(data.clientName || 'Client');
         setLoading(false);
       })
       .catch((err) => {
@@ -38,102 +53,270 @@ export default function ClientViewPage() {
       });
   }, [token]);
 
-  async function sendFeedback(row: number) {
-    setSending(true);
-    await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, entryRow: row, feedback: feedbackText }),
-    });
-    setEntries((prev) =>
-      prev.map((e) => (e.row === row ? { ...e, feedback: feedbackText } : e))
-    );
-    setFeedbackRow(null);
-    setFeedbackText('');
-    setSending(false);
+  async function handleAction(row: number, updates: { statut?: string; feedback?: string }) {
+    setSubmitting(row);
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, entryRow: row, ...updates }),
+      });
+
+      if (res.ok) {
+        setEntries((prev) =>
+          prev.map((e) => (e.row === row ? { ...e, ...updates } : e))
+        );
+        if (updates.feedback !== undefined) {
+          setCommentingRow(null);
+          setCommentText('');
+        }
+      }
+    } catch (err) {
+      console.error('Action error:', err);
+    } finally {
+      setSubmitting(null);
+    }
   }
 
-  if (loading) return <div className="p-8 text-gray-500">Chargement...</div>;
-  if (error) return <div className="p-8 text-red-500">{error}</div>;
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="mb-2 text-2xl font-bold">Calendrier — {clientName}</h1>
-      <p className="mb-6 text-sm text-gray-500">
-        Consultez vos contenus et laissez vos commentaires
-      </p>
-
-      <div className="space-y-4">
-        {entries.map((entry) => (
-          <div key={entry.row} className="rounded-xl border bg-white p-5">
-            <div className="flex items-start gap-4">
-              {entry.image_url && (
-                <img
-                  src={entry.image_url}
-                  alt={entry.titre}
-                  className="h-32 w-32 rounded-lg object-cover"
-                />
-              )}
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">{entry.date}</span>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs">{entry.type}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[entry.statut] || ''}`}>
-                    {entry.statut}
-                  </span>
-                </div>
-                <h3 className="mt-1 font-semibold">{entry.titre}</h3>
-                {entry.legende && (
-                  <p className="mt-2 whitespace-pre-line text-sm">{entry.legende}</p>
-                )}
-                {entry.hashtags && (
-                  <p className="mt-1 text-sm text-blue-500">{entry.hashtags}</p>
-                )}
-
-                {entry.feedback && (
-                  <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm">
-                    <span className="font-medium">Votre feedback :</span> {entry.feedback}
-                  </div>
-                )}
-
-                {feedbackRow === entry.row ? (
-                  <div className="mt-3 space-y-2">
-                    <textarea
-                      value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      placeholder="Votre commentaire..."
-                      rows={3}
-                      className="w-full rounded-lg border px-3 py-2 text-sm"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => sendFeedback(entry.row!)}
-                        disabled={sending || !feedbackText.trim()}
-                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-                      >
-                        {sending ? 'Envoi...' : 'Envoyer'}
-                      </button>
-                      <button
-                        onClick={() => { setFeedbackRow(null); setFeedbackText(''); }}
-                        className="rounded-lg border px-3 py-1.5 text-sm"
-                      >
-                        Annuler
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setFeedbackRow(entry.row!)}
-                    className="mt-2 text-sm text-blue-600 hover:underline"
-                  >
-                    Laisser un commentaire
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+        <p className="font-medium text-slate-500">Préparation de votre calendrier...</p>
       </div>
     </div>
   );
+
+  if (error) return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-center">
+      <div className="max-w-md rounded-2xl bg-white p-8 shadow-xl border border-rose-100">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+          <XCircle size={32} />
+        </div>
+        <h1 className="mb-2 text-xl font-bold text-slate-900">Oups !</h1>
+        <p className="text-slate-500">{error}</p>
+      </div>
+    </div>
+  );
+
+  const filteredEntries = activeTab === 'pending' 
+    ? entries.filter(e => e.statut === 'brouillon' || e.statut === 'rejeté')
+    : entries;
+
+  const stats = {
+    pending: entries.filter(e => e.statut === 'brouillon').length,
+    total: entries.length
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Header Premium */}
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200">
+              <Instagram size={22} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight">{clientName}</h1>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Espace Validation</p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-6">
+             <div className="text-right">
+                <p className="text-xs text-slate-400 font-medium">Statut du mois</p>
+                <p className="text-sm font-bold text-slate-700">{stats.total - stats.pending} / {stats.total} validés</p>
+             </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        {/* Navigation Tabs */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="inline-flex rounded-xl bg-slate-200/50 p-1 p-1">
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                activeTab === 'pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              À valider <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[10px]">{stats.pending}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                activeTab === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Tout voir
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2 text-sm text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+            <CalendarIcon size={14} className="text-blue-500" />
+            <span>Mars 2026</span>
+          </div>
+        </div>
+
+        {/* Content List */}
+        <div className="space-y-8">
+          {filteredEntries.length === 0 ? (
+            <div className="rounded-3xl border-2 border-dashed border-slate-200 py-20 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+                <Check size={32} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Tout est en ordre !</h3>
+              <p className="text-slate-500">Vous avez validé tous les contenus proposés.</p>
+            </div>
+          ) : (
+            filteredEntries.map((entry) => {
+              const config = STATUS_CONFIG[entry.statut] || STATUS_CONFIG.brouillon;
+              const StatusIcon = config.icon;
+              const isActionable = entry.statut === 'brouillon' || entry.statut === 'rejeté';
+
+              return (
+                <div 
+                  key={entry.row} 
+                  className={`group relative overflow-hidden rounded-3xl bg-white shadow-sm border transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 ${
+                    entry.statut === 'validé' ? 'border-emerald-100 shadow-emerald-500/5' : 'border-slate-200'
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row">
+                    {/* Visual Section */}
+                    <div className="relative aspect-square w-full md:w-80 shrink-0 bg-slate-100 overflow-hidden">
+                      {entry.image_url ? (
+                        <img
+                          src={entry.image_url}
+                          alt={entry.titre}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center text-slate-400">
+                          <ImageIcon size={48} strokeWidth={1} />
+                          <p className="mt-2 text-xs font-medium">Visuel en cours</p>
+                        </div>
+                      )}
+                      
+                      {/* Floating Badge */}
+                      <div className={`absolute left-4 top-4 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm ${config.color}`}>
+                        <StatusIcon size={12} />
+                        {config.label}
+                      </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="flex flex-1 flex-col p-6 sm:p-8">
+                      <div className="mb-4 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                         <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                           <CalendarIcon size={12} className="text-blue-500" />
+                           {entry.date}
+                         </div>
+                         <div className="bg-slate-50 px-2 py-1 rounded-md">{entry.type}</div>
+                      </div>
+
+                      <h2 className="mb-4 text-xl font-bold text-slate-900 leading-tight">{entry.titre}</h2>
+                      
+                      <div className="mb-6 relative">
+                        <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+                          <p className="whitespace-pre-line text-[15px] leading-relaxed text-slate-700 italic">
+                            "{entry.legende || "(Texte en attente)"}"
+                          </p>
+                          {entry.hashtags && (
+                            <p className="mt-4 text-sm font-medium text-blue-600/80">
+                              {entry.hashtags}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Feedback Display */}
+                      {entry.feedback && (
+                        <div className="mb-6 flex items-start gap-3 rounded-2xl bg-amber-50/50 p-4 border border-amber-100 text-sm text-amber-800">
+                          <MessageSquare size={16} className="mt-0.5 shrink-0" />
+                          <div>
+                            <span className="font-bold">Remarque transmise :</span> {entry.feedback}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-slate-100 pt-6">
+                        {isActionable ? (
+                          <>
+                            <button
+                              onClick={() => handleAction(entry.row!, { statut: 'validé' })}
+                              disabled={!!submitting}
+                              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:-translate-y-0.5 disabled:opacity-50"
+                            >
+                              <Check size={18} /> Approver
+                            </button>
+                            <button
+                              onClick={() => setCommentingRow(entry.row!)}
+                              className="flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition-all hover:border-blue-600 hover:text-blue-600 hover:-translate-y-0.5"
+                            >
+                              <MessageSquare size={18} /> Commenter
+                            </button>
+                          </>
+                        ) : entry.statut === 'validé' ? (
+                          <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-4 py-2 rounded-xl">
+                            <CheckCircle2 size={18} /> Ce post est validé
+                            <button 
+                              onClick={() => handleAction(entry.row!, { statut: 'rejeté' })}
+                              className="ml-4 text-[11px] uppercase tracking-wider text-slate-400 hover:text-rose-500"
+                            >
+                              Annuler ?
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Comment Input Modal-like (Inline) */}
+                      {commentingRow === entry.row && (
+                        <div className="mt-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                          <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Votre retour pour modifications :</label>
+                          <textarea
+                            autoFocus
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            placeholder="Que souhaiteriez-vous changer ?"
+                            className="w-full rounded-2xl border-2 border-blue-100 bg-white p-4 text-sm focus:border-blue-600 focus:outline-none transition-all"
+                            rows={3}
+                          />
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              onClick={() => handleAction(entry.row!, { feedback: commentText, statut: 'rejeté' })}
+                              disabled={!commentText.trim() || !!submitting}
+                              className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-blue-600/10 hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              <Send size={16} /> Envoyer le retour
+                            </button>
+                            <button
+                              onClick={() => { setCommentingRow(null); setCommentText(''); }}
+                              className="rounded-xl px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </main>
+
+      <footer className="mt-20 border-t border-slate-200 bg-white py-12 text-center text-slate-400">
+        <div className="flex items-center justify-center gap-2 mb-2">
+           <div className="h-2 w-2 rounded-full bg-blue-600"></div>
+           <p className="text-sm font-bold text-slate-900 tracking-tight">PostInsta <span className="text-blue-600">Pro</span></p>
+        </div>
+        <p className="text-xs">Système automatisé de création de contenus · 2026</p>
+      </footer>
+    </div>
+  );
 }
+

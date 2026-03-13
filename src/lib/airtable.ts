@@ -37,59 +37,77 @@ const FIELD_MAP = {
   'Visuels Client': 'visuels_client',
   'Client': 'client',
   'persona': 'persona',
+  'Profil JSON': 'profil_json',
 } as const;
-
-// Reverse mapping: CalendarEntry keys -> Airtable field names
-const REVERSE_FIELD_MAP: Record<string, string> = {};
-for (const [airtableField, entryKey] of Object.entries(FIELD_MAP)) {
-  REVERSE_FIELD_MAP[entryKey] = airtableField;
-}
 
 // Status mapping: PostInsta -> Airtable
 const STATUS_TO_AIRTABLE: Record<string, string> = {
   'brouillon': 'brouillons',
-  'validé': 'approuvés ',
-  'rejeté': 'Idées ',
-  'publié': 'publié ',
+  'validé': 'approuvés',
+  'rejeté': 'Idées',
+  'publié': 'publié',
   'planifié': 'planifié',
 };
 
 const STATUS_FROM_AIRTABLE: Record<string, CalendarEntry['statut']> = {
-  'Idées ': 'brouillon',
+  'Idées': 'brouillon',
   'brouillons': 'brouillon',
-  'approuvés ': 'validé',
+  'approuvés': 'validé',
   'planifié': 'validé',
-  'publié ': 'publié',
+  'publié': 'publié',
 };
 
 // === Parse Airtable record -> CalendarEntry ===
 
 function recordToEntry(record: { id: string; fields: Record<string, unknown> }): CalendarEntry & { airtableId: string; visuels_client?: string[] } {
   const f = record.fields;
+  
+  // Helper to get field value case-insensitively
+  const getF = (names: string[]) => {
+    for (const name of names) {
+      if (f[name] !== undefined) return f[name];
+      // Try lowercase/uppercase variants
+      const key = Object.keys(f).find(k => k.toLowerCase().trim() === name.toLowerCase());
+      if (key) return f[key];
+    }
+    return undefined;
+  };
 
-  // Extract image URLs from attachment fields
-  const imageAttachments = f['Image'] as Array<{ url: string }> | undefined;
-  const imageUrls = imageAttachments?.map(a => a.url) || [];
+  if (!(recordToEntry as any)._logged) {
+    console.log('[Airtable] Sample record fields:', Object.keys(f));
+    (recordToEntry as any)._logged = true;
+  }
 
-  const clientAttachments = f['Visuels Client'] as Array<{ url: string }> | undefined;
+  // Extract images
+  const images = getF(['Image', 'Images', 'Visuel']) as any;
+  const imageUrls: string[] = [];
+  if (Array.isArray(images)) {
+    images.forEach(img => { if (img.url) imageUrls.push(img.url); });
+  } else if (typeof images === 'string') {
+    imageUrls.push(images);
+  }
+
+  const clientAttachments = getF(['Visuels Client', 'Photos']) as Array<{ url: string }> | undefined;
   const clientUrls = clientAttachments?.map(a => a.url) || [];
 
-  const airtableStatus = (f['statut'] as string) || 'brouillons';
+  const rawStatus = (getF(['statut', 'status', 'Statut']) as string || 'brouillons').trim();
 
-  return {
+  const entry = {
     airtableId: record.id,
-    date: f['date de publication'] ? (f['date de publication'] as string).split('T')[0] : '',
-    type: (f['Type de publication'] as string) || 'post',
-    theme: (f['thème'] as string) || '',
-    titre: (f['Sujet du post'] as string) || '',
-    legende: (f['contenu'] as string) || '',
-    hashtags: (f['Hashtags'] as string) || '',
-    image_prompt: (f['Image Prompt'] as string) || '',
+    date: getF(['date de publication', 'date']) ? (getF(['date de publication', 'date']) as string).split('T')[0] : '',
+    type: (getF(['Type de publication', 'Type']) as string) || 'post',
+    theme: (getF(['thème', 'Theme']) as string) || '',
+    titre: (getF(['Sujet du post', 'Titre', 'Sujet']) as string) || '',
+    legende: (getF(['contenu', 'Légende', 'Legende', 'Content', 'Description']) as string || '').trim(),
+    hashtags: (getF(['Hashtags', 'Tags']) as string || '').trim(),
     image_url: imageUrls.join(','),
-    statut: STATUS_FROM_AIRTABLE[airtableStatus] || 'brouillon',
-    feedback: (f['Feedback'] as string) || '',
+    image_prompt: (getF(['Image Prompt', 'Prompt']) as string) || '',
+    statut: STATUS_FROM_AIRTABLE[rawStatus] || 'brouillon' as CalendarEntry['statut'],
+    feedback: (getF(['Feedback', 'Commentaires']) as string) || '',
     visuels_client: clientUrls,
   };
+  
+  return entry;
 }
 
 // === Clients (stored in a separate "Clients" table or we use the Client field) ===
@@ -138,7 +156,7 @@ export async function addClient(client: Client): Promise<void> {
           fields: {
             'Sujet du post': `[Config] ${client.name}`,
             'Client': client.name,
-            'statut': 'Idées ',
+            'statut': 'Idées',
           },
         }],
       }),
@@ -164,11 +182,18 @@ export async function canAccessClient(clientId: string, userId: string, isAdmin:
 // === Client Profile ===
 // Stored as JSON in the "Profil JSON" field of the [Config] record
 
-export async function readProfile(clientSlug: string): Promise<ClientProfile> {
-  const formula = encodeURIComponent(`AND({Client}="${clientSlug}",FIND("[Config]",{Sujet du post}))`);
+export async function readProfile(clientSlug: string, clientName?: string): Promise<ClientProfile> {
+  const identifiers = [clientSlug];
+  if (clientName) identifiers.push(clientName);
+  
+  const conditions = identifiers.map(id => `{Client}="${id}"`);
+  const formula = encodeURIComponent(`AND(OR(${conditions.join(',')}),FIND("[Config]",{Sujet du post}))`);
+  
+  console.log(`[Airtable] Reading profile for: ${identifiers.join(' / ')}`);
   const data = await airtableFetch(
     `${BASE_ID}/${CALENDAR_TABLE_ID}?filterByFormula=${formula}&maxRecords=1`
   );
+  console.log(`[Airtable] Profile record found? ${data.records.length > 0 ? 'Yes' : 'No'}`);
 
   const profilJson = data.records[0]?.fields?.['Profil JSON'] || '';
   if (profilJson) {
@@ -196,8 +221,13 @@ export async function readProfile(clientSlug: string): Promise<ClientProfile> {
   };
 }
 
-export async function writeProfile(clientSlug: string, profile: ClientProfile): Promise<void> {
-  const formula = encodeURIComponent(`AND({Client}="${clientSlug}",FIND("[Config]",{Sujet du post}))`);
+export async function writeProfile(clientSlug: string, profile: ClientProfile, clientName?: string): Promise<void> {
+  const identifiers = [clientSlug];
+  if (clientName) identifiers.push(clientName);
+  
+  const conditions = identifiers.map(id => `{Client}="${id}"`);
+  const formula = encodeURIComponent(`AND(OR(${conditions.join(',')}),FIND("[Config]",{Sujet du post}))`);
+  
   const data = await airtableFetch(
     `${BASE_ID}/${CALENDAR_TABLE_ID}?filterByFormula=${formula}&maxRecords=1`
   );
@@ -211,16 +241,40 @@ export async function writeProfile(clientSlug: string, profile: ClientProfile): 
         fields: { 'Profil JSON': profileJson, 'persona': profile.tone_of_voice },
       }),
     });
+  } else {
+    // Créer le record [Config] s'il n'existe pas
+    await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        typecast: true,
+        records: [{
+          fields: {
+            'Sujet du post': `[Config] ${clientName || clientSlug}`,
+            'Client': clientName || clientSlug,
+            'statut': 'Idées',
+            'Profil JSON': profileJson,
+            'persona': profile.tone_of_voice
+          },
+        }],
+      }),
+    });
   }
 }
 
 // === Calendar ===
 
-export async function readCalendar(clientSlug: string): Promise<CalendarEntry[]> {
-  const formula = encodeURIComponent(`{Client}="${clientSlug}"`);
+export async function readCalendar(clientSlug: string, clientName?: string): Promise<CalendarEntry[]> {
+  const identifiers = [clientSlug];
+  if (clientName) identifiers.push(clientName);
+  
+  const conditions = identifiers.map(id => `{Client}="${id}"`);
+  const formula = encodeURIComponent(`OR(${conditions.join(',')})`);
+  
+  console.log(`[Airtable] Reading calendar for: ${identifiers.join(' / ')}`);
   const data = await airtableFetch(
     `${BASE_ID}/${CALENDAR_TABLE_ID}?filterByFormula=${formula}&sort%5B0%5D%5Bfield%5D=date+de+publication&sort%5B0%5D%5Bdirection%5D=asc`
   );
+  console.log(`[Airtable] Total records found for ${clientSlug}: ${data.records.length}`);
 
   return data.records
     .map(recordToEntry)
@@ -228,7 +282,7 @@ export async function readCalendar(clientSlug: string): Promise<CalendarEntry[]>
     .map((e: CalendarEntry, i: number) => ({ ...e, row: i + 2 }));
 }
 
-export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]): Promise<void> {
+export async function writeCalendar(clientSlug: string, entries: CalendarEntry[], clientName?: string): Promise<void> {
   // Create records in batches of 10 (Airtable limit)
   const batchSize = 10;
 
@@ -244,7 +298,7 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
         'Hashtags': e.hashtags,
         'Image Prompt': e.image_prompt,
         'statut': STATUS_TO_AIRTABLE[e.statut] || 'brouillons',
-        'Client': clientSlug,
+        'Client': clientName || clientSlug,
         'Feedback': e.feedback || '',
       },
     }));
@@ -256,10 +310,10 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
   }
 }
 
-export async function updateEntry(clientSlug: string, row: number, data: Partial<CalendarEntry>): Promise<void> {
+export async function updateEntry(clientSlug: string, row: number, data: Partial<CalendarEntry>, clientName?: string): Promise<void> {
   // In Airtable, we use the airtableId instead of row number
   // The row parameter is used as an index into the calendar
-  const calendar = await readCalendar(clientSlug);
+  const calendar = await readCalendar(clientSlug, clientName);
   const entry = calendar[row - 2]; // row is 1-indexed with header, so row 2 = index 0
 
   if (!entry) {
@@ -272,10 +326,15 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
   if (data.legende !== undefined) fields['contenu'] = data.legende;
   if (data.hashtags !== undefined) fields['Hashtags'] = data.hashtags;
   if (data.image_url !== undefined) {
-    // For image attachments, we need to provide URL objects
     const urls = data.image_url.split(',').filter(Boolean);
-    if (urls.length > 0) {
-      fields['Image'] = urls.map(url => ({ url }));
+    const publicUrls = urls.filter(url => url.startsWith('http'));
+    
+    if (publicUrls.length > 0) {
+      // Airtable requires public URLs for attachments
+      fields['Image'] = publicUrls.map(url => ({ url }));
+    } else if (urls.length > 0) {
+      console.warn(`[Airtable] Local image URLs detected (${urls.join(',')}). Skipping attachment upload because Airtable cannot reach localhost.`);
+      // Optional: if you have a text field for the path, you could use it here.
     }
   }
   if (data.image_prompt !== undefined) fields['Image Prompt'] = data.image_prompt;
@@ -304,7 +363,7 @@ export async function createClientTabs(clientName: string): Promise<string> {
         fields: {
           'Sujet du post': `[Config] ${clientName}`,
           'Client': clientName,
-          'statut': 'Idées ',
+          'statut': 'Idées',
         },
       }],
     }),

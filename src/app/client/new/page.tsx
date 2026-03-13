@@ -26,6 +26,7 @@ const emptyProfile = (): ClientProfile =>
 export default function NewClientPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<ClientProfile>(emptyProfile());
+  const [source, setSource] = useState<'sheets' | 'airtable'>('sheets');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,7 +47,7 @@ export default function NewClientPage() {
     const res = await fetch('/api/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: profile.nom_client, profile }),
+      body: JSON.stringify({ name: profile.nom_client, profile, source }),
     });
 
     if (res.ok) {
@@ -63,6 +64,18 @@ export default function NewClientPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold">Nouveau client</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium">Source des données</label>
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value as 'sheets' | 'airtable')}
+            className="w-full rounded-lg border px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="sheets">Google Sheets</option>
+            <option value="airtable">Airtable</option>
+          </select>
+        </div>
+
         {FIELDS.map((field) => (
           <div key={field.key}>
             <label className="mb-1 block text-sm font-medium">{field.label}</label>

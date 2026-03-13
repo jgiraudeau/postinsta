@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientById, readProfile, readCalendar, canAccessClient } from '@/lib/airtable';
+import * as db from '@/lib/db';
 import { requireAuth } from '@/lib/request-helpers';
 
 export async function GET(
@@ -10,18 +10,18 @@ export async function GET(
     const user = await requireAuth();
     const { id } = await params;
 
-    const hasAccess = await canAccessClient(id, user.userId, user.role === 'ADMIN');
+    const hasAccess = await db.canAccessClient(id, user.userId, user.role === 'ADMIN');
     if (!hasAccess) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
-    const client = await getClientById(id);
+    const client = await db.getClientById(id);
     if (!client) {
       return NextResponse.json({ error: 'Client non trouvé' }, { status: 404 });
     }
 
-    const profile = await readProfile(client.sheetId);
-    const calendar = await readCalendar(client.sheetId);
+    const profile = await db.readProfile(client);
+    const calendar = await db.readCalendar(client);
 
     return NextResponse.json({ client, profile, calendar });
   } catch (error) {

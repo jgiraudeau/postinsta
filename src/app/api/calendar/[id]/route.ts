@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getClientByToken, readCalendar } from '@/lib/airtable';
+import * as db from '@/lib/db';
 
 export async function GET(
   _request: Request,
@@ -9,12 +9,12 @@ export async function GET(
     const { id: token } = await params;
 
     // Token-based access for clients
-    const client = await getClientByToken(token);
+    const client = await db.getClientByToken(token);
     if (!client) {
       return NextResponse.json({ error: 'Lien invalide' }, { status: 404 });
     }
 
-    const calendar = await readCalendar(client.sheetId);
+    const calendar = await db.readCalendar(client);
 
     return NextResponse.json({ calendar, clientName: client.name });
   } catch (error) {

@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getClientByToken, updateEntry } from '@/lib/airtable';
+import * as db from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
-    const { token, entryRow, feedback } = await request.json();
+    const { token, entryRow, feedback, statut } = await request.json();
 
-    const client = await getClientByToken(token);
+    const client = await db.getClientByToken(token);
     if (!client) {
       return NextResponse.json({ error: 'Lien invalide' }, { status: 404 });
     }
 
-    await updateEntry(client.sheetId, entryRow, { feedback });
+    const updates: any = {};
+    if (feedback !== undefined) updates.feedback = feedback;
+    if (statut !== undefined) updates.statut = statut;
+
+    await db.updateEntry(client, entryRow, updates);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -7,6 +7,7 @@ export interface Client {
   viewToken: string;
   userId: string;
   createdAt: string;
+  source?: 'sheets' | 'airtable';
 }
 
 export interface ClientProfile {
