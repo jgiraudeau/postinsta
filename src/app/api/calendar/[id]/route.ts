@@ -16,7 +16,11 @@ export async function GET(
 
     const calendar = await db.readCalendar(client);
 
-    return NextResponse.json({ calendar, clientName: client.name });
+    return NextResponse.json({ 
+      calendar, 
+      clientName: client.name,
+      airtableInterfaceUrl: client.airtableInterfaceUrl 
+    });
   } catch (error) {
     console.error('Error fetching calendar:', error);
     return NextResponse.json({ error: 'Erreur' }, { status: 500 });

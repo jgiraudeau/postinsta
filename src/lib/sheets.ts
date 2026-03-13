@@ -29,7 +29,7 @@ export async function getClients(userId?: string): Promise<Client[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'Clients!A2:G',
+    range: 'Clients!A2:H',
   });
   const rows = res.data.values || [];
   const clients = rows.map((row) => ({
@@ -40,6 +40,7 @@ export async function getClients(userId?: string): Promise<Client[]> {
     createdAt: row[4],
     userId: row[5] || '',
     source: (row[6] as 'sheets' | 'airtable') || 'sheets',
+    airtableInterfaceUrl: row[7] || '',
   }));
 
   if (userId) {
@@ -52,10 +53,19 @@ export async function addClient(client: Client): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: 'Clients!A:G',
+    range: 'Clients!A:H',
     valueInputOption: 'RAW',
     requestBody: {
-      values: [[client.id, client.name, client.sheetId, client.viewToken, client.createdAt, client.userId, client.source || 'sheets']],
+      values: [[
+        client.id, 
+        client.name, 
+        client.sheetId, 
+        client.viewToken, 
+        client.createdAt, 
+        client.userId, 
+        client.source || 'sheets',
+        client.airtableInterfaceUrl || ''
+      ]],
     },
   });
 }

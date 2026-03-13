@@ -8,6 +8,7 @@ export interface Client {
   userId: string;
   createdAt: string;
   source?: 'sheets' | 'airtable';
+  airtableInterfaceUrl?: string;
 }
 
 export interface ClientProfile {

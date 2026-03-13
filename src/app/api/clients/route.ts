@@ -22,10 +22,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
-    const { name, profile, source } = (await request.json()) as {
+    const { name, profile, source, airtableInterfaceUrl } = (await request.json()) as {
       name: string;
       profile: ClientProfile;
       source?: 'sheets' | 'airtable';
+      airtableInterfaceUrl?: string;
     };
 
     const client: Client = {
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
       userId: user.userId,
       createdAt: new Date().toISOString(),
       source: source || 'sheets',
+      airtableInterfaceUrl: airtableInterfaceUrl || '',
     };
 
     await db.addClient(client);

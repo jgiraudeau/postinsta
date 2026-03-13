@@ -27,6 +27,7 @@ export default function NewClientPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<ClientProfile>(emptyProfile());
   const [source, setSource] = useState<'sheets' | 'airtable'>('sheets');
+  const [airtableUrl, setAirtableUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,7 +48,12 @@ export default function NewClientPage() {
     const res = await fetch('/api/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: profile.nom_client, profile, source }),
+      body: JSON.stringify({ 
+        name: profile.nom_client, 
+        profile, 
+        source,
+        airtableInterfaceUrl: airtableUrl 
+      }),
     });
 
     if (res.ok) {
@@ -75,6 +81,20 @@ export default function NewClientPage() {
             <option value="airtable">Airtable</option>
           </select>
         </div>
+
+        {source === 'airtable' && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-purple-700">URL Interface Airtable (optionnel)</label>
+            <input
+              type="text"
+              value={airtableUrl}
+              onChange={(e) => setAirtableUrl(e.target.value)}
+              placeholder="https://airtable.com/app.../pag..."
+              className="w-full rounded-lg border border-purple-200 bg-purple-50/30 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            />
+            <p className="mt-1 text-xs text-gray-500 italic">Lien direct vers l'Interface Designer ou une vue partagée pour le client.</p>
+          </div>
+        )}
 
         {FIELDS.map((field) => (
           <div key={field.key}>

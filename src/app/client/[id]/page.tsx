@@ -62,6 +62,16 @@ export default function ClientDetailPage() {
           >
             Générer
           </Link>
+          {client.airtableInterfaceUrl && (
+            <a
+              href={client.airtableInterfaceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-orange-100 px-4 py-2 font-medium text-orange-700 hover:bg-orange-200"
+            >
+              Ouvrir Airtable
+            </a>
+          )}
         </div>
       </div>
 
@@ -96,8 +106,15 @@ export default function ClientDetailPage() {
       )}
 
       <div className="mt-6 rounded-xl border bg-white p-4">
-        <p className="text-sm text-gray-500">Lien de partage client :</p>
         <code className="mt-1 block text-sm text-blue-600">/view/{client.viewToken}</code>
+        {client.airtableInterfaceUrl && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-sm text-gray-500">Interface Airtable Client :</p>
+            <a href={client.airtableInterfaceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block text-sm text-orange-600 hover:underline">
+              {client.airtableInterfaceUrl}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

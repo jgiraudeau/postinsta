@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Send,
   Check,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; icon: any }> = {
@@ -28,6 +29,7 @@ export default function ClientViewPage() {
   const { token } = useParams<{ token: string }>();
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [clientName, setClientName] = useState('');
+  const [airtableInterfaceUrl, setAirtableInterfaceUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
@@ -45,6 +47,7 @@ export default function ClientViewPage() {
       .then((data) => {
         setEntries(data.calendar || []);
         setClientName(data.clientName || 'Client');
+        setAirtableInterfaceUrl(data.airtableInterfaceUrl || '');
         setLoading(false);
       })
       .catch((err) => {
@@ -123,10 +126,20 @@ export default function ClientViewPage() {
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-6">
-             <div className="text-right">
-                <p className="text-xs text-slate-400 font-medium">Statut du mois</p>
-                <p className="text-sm font-bold text-slate-700">{stats.total - stats.pending} / {stats.total} validés</p>
-             </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-400 font-medium">Statut du mois</p>
+              <p className="text-sm font-bold text-slate-700">{stats.total - stats.pending} / {stats.total} validés</p>
+            </div>
+            {airtableInterfaceUrl && (
+              <a
+                href={airtableInterfaceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 border border-orange-100 transition-all hover:bg-orange-100"
+              >
+                <ExternalLink size={14} /> Vue Airtable
+              </a>
+            )}
           </div>
         </div>
       </header>
