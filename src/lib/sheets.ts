@@ -156,14 +156,14 @@ export async function writeProfile(clientSlug: string, profile: ClientProfile): 
 
 // === Calendrier client (onglet "Cal_{slug}") ===
 
-const CALENDAR_HEADERS = ['date', 'type', 'theme', 'titre', 'legende', 'hashtags', 'image_prompt', 'image_url', 'statut', 'feedback'];
+const CALENDAR_HEADERS = ['date', 'type', 'theme', 'titre', 'legende', 'hashtags', 'image_prompt', 'image_url', 'statut', 'feedback', 'script', 'extra_images'];
 
 export async function readCalendar(clientSlug: string): Promise<CalendarEntry[]> {
   const sheets = getSheets();
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: `${calendarTab(clientSlug)}!A2:J`,
+      range: `${calendarTab(clientSlug)}!A2:L`,
     });
     const rows = res.data.values || [];
     return rows.map((row, i) => ({
@@ -178,6 +178,8 @@ export async function readCalendar(clientSlug: string): Promise<CalendarEntry[]>
       image_url: row[7] || '',
       statut: (row[8] || 'brouillon') as CalendarEntry['statut'],
       feedback: row[9] || '',
+      script: row[10] || '',
+      extra_images: row[11] ? row[11].split(';') : [],
     }));
   } catch {
     return [];
@@ -189,11 +191,12 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
   const values = entries.map((e) => [
     e.date, e.type, e.theme, e.titre, e.legende, e.hashtags,
     e.image_prompt, e.image_url, e.statut || 'brouillon', e.feedback || '',
+    e.script || '', (e.extra_images || []).join(';'),
   ]);
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${calendarTab(clientSlug)}!A1:J${values.length + 1}`,
+    range: `${calendarTab(clientSlug)}!A1:L${values.length + 1}`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [CALENDAR_HEADERS, ...values],
@@ -206,24 +209,27 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
   const tab = calendarTab(clientSlug);
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${tab}!A${row}:J${row}`,
+    range: `${tab}!A${row}:L${row}`,
   });
-  const existing = res.data.values?.[0] || Array(10).fill('');
+  const existing = res.data.values?.[0] || Array(12).fill('');
 
   const fieldMap: Record<string, number> = {
     date: 0, type: 1, theme: 2, titre: 3, legende: 4,
     hashtags: 5, image_prompt: 6, image_url: 7, statut: 8, feedback: 9,
+    script: 10, extra_images: 11,
   };
 
   for (const [key, value] of Object.entries(data)) {
-    if (key in fieldMap && key !== 'row') {
+    if (key === 'extra_images' && Array.isArray(value)) {
+      existing[fieldMap[key]] = value.join(';');
+    } else if (key in fieldMap && key !== 'row') {
       existing[fieldMap[key]] = value;
     }
   }
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${tab}!A${row}:J${row}`,
+    range: `${tab}!A${row}:L${row}`,
     valueInputOption: 'RAW',
     requestBody: { values: [existing] },
   });
@@ -256,7 +262,7 @@ export async function createClientTabs(clientName: string): Promise<string> {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${calendarTab(clientSlug)}!A1:J1`,
+    range: `${calendarTab(clientSlug)}!A1:L1`,
     valueInputOption: 'RAW',
     requestBody: { values: [CALENDAR_HEADERS] },
   });

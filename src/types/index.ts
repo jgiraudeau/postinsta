@@ -41,11 +41,14 @@ export interface CalendarEntry {
   statut: 'brouillon' | 'validé' | 'rejeté' | 'publié';
   feedback: string;
   visuels_client?: string[];
+  script?: string;
+  extra_images?: string[]; // Pour les carrousels (URLs des slides suivantes)
 }
 
 export interface CaptionResult {
   legende: string;
   hashtags: string;
+  script?: string;
 }
 
 export interface GenerateCalendarRequest {

@@ -12,6 +12,8 @@ export async function generateImage(
 ): Promise<string> {
   const prompt = imagePrompt(profile, entry);
 
+  const isVertical = entry.type === 'story' || entry.type === 'reel';
+
   const response = await genai.models.generateContent({
     model: 'gemini-2.5-flash-image',
     contents: prompt,

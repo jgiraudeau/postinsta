@@ -45,6 +45,8 @@ Règles :
 - Varie les types : environ 40% posts, 30% carousels, 20% stories, 10% quotes/infographies
 - Les carousels doivent avoir entre 3 et 5 slides
 - Pour les carousels, le champ image_prompt doit décrire CHAQUE slide séparément (Slide 1 : ..., Slide 2 : ..., etc.)
+- Privilégie les descriptions visuelles (scènes, objets, ambiances). 
+- ÉVITE le texte incrusté dans les images autant que possible. Si du texte est indispensable (ex: titre, mot-clé), garde-le extrêmement court (1 à 3 mots maximum) pour éviter les fautes d'orthographe de l'IA.
 - Les image_prompt doivent être détaillés, visuels et adaptés au secteur du client
 - Les dates commencent à partir de demain`;
 }

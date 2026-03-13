@@ -18,7 +18,9 @@ import {
   ExternalLink,
   LayoutGrid,
   List,
-  MessageCircle
+  MessageCircle,
+  Play,
+  Film
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; icon: any }> = {
@@ -224,7 +226,7 @@ export default function ClientViewPage() {
                 >
                   <div className="flex flex-col md:flex-row">
                     {/* Visual Section */}
-                    <div className="relative aspect-square w-full md:w-80 shrink-0 bg-slate-100 overflow-hidden">
+                    <div className={`relative ${entry.type === 'story' || entry.type === 'reel' ? 'aspect-[9/16]' : 'aspect-square'} w-full md:w-80 shrink-0 bg-slate-100 overflow-hidden`}>
                       {entry.image_url ? (
                         <img
                           src={entry.image_url}
@@ -259,6 +261,7 @@ export default function ClientViewPage() {
                       
                       <div className="mb-6 relative">
                         <div className="rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+                          <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Légende Instagram</p>
                           <p className="whitespace-pre-line text-[15px] leading-relaxed text-slate-700 italic">
                             "{entry.legende || "(Texte en attente)"}"
                           </p>
@@ -269,6 +272,28 @@ export default function ClientViewPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* Script Display for Videos */}
+                      {entry.script && (
+                        <div className="mb-6">
+                           <div className="rounded-2xl bg-indigo-50/50 p-4 border border-indigo-100">
+                             <div className="flex items-center gap-2 mb-2 text-indigo-700">
+                               <Play size={14} className="fill-current" />
+                               <p className="text-[10px] font-bold uppercase tracking-wider">Script & Storyboard</p>
+                             </div>
+                             <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
+                               {entry.script}
+                             </p>
+                           </div>
+                        </div>
+                      )}
+
+                      {/* Carousel Indicator */}
+                      {entry.type === 'carousel' && (
+                        <div className="mb-6 flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 w-fit px-3 py-1 rounded-full border border-slate-100">
+                          <LayoutGrid size={12} /> Format Carrousel (slides multiples)
+                        </div>
+                      )}
 
                       {/* Feedback Display */}
                       {entry.feedback && (
@@ -386,8 +411,17 @@ export default function ClientViewPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="max-w-[300px] lg:max-w-md">
-                          <h4 className="text-sm font-bold text-slate-900 mb-1 line-clamp-1">{entry.titre}</h4>
-                          <p className="text-sm text-slate-500 line-clamp-2">{entry.legende}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-bold text-slate-900 line-clamp-1">{entry.titre}</h4>
+                            {entry.script && (
+                              <span className="flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-indigo-600 border border-indigo-100">
+                                <Play size={8} className="fill-current" /> Script
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-500 line-clamp-2 italic">
+                            {entry.script ? `"${entry.script.substring(0, 100)}..."` : entry.legende}
+                          </p>
                           {entry.feedback && (
                             <div className="mt-2 flex items-center gap-2 text-[11px] text-amber-600 bg-amber-50 rounded px-2 py-0.5 w-fit">
                               <MessageCircle size={10} /> {entry.feedback}

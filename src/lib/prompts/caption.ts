@@ -20,7 +20,8 @@ export function captionPrompt(profile: ClientProfile, entry: CalendarEntry): str
 Retourne UNIQUEMENT un objet JSON (pas de texte avant/après) :
 {
   "legende": "La légende complète avec emojis, sauts de ligne, CTA...",
-  "hashtags": "#hashtag1 #hashtag2 #hashtag3..."
+  "hashtags": "#hashtag1 #hashtag2 #hashtag3...",
+  "script": "Si type=story ou reel, décris ici le storyboard : 0-3s: ..., 3-10s: ..., Musique: ..."
 }
 
 La légende doit :
@@ -28,6 +29,8 @@ La légende doit :
 - Inclure 3-5 paragraphes courts
 - Finir avec un CTA clair
 - Être adaptée au ton du client
+
+Pour les types "story" ou "reel", le champ "script" est OBLIGATOIRE et doit détailler ce qu'on voit à l'écran et ce qu'on dit, seconde par seconde.
 
 Les hashtags : mix de ${profile.hashtags_base} + hashtags spécifiques au thème (15-20 au total).`;
 }
