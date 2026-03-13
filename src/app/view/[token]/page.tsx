@@ -15,7 +15,10 @@ import {
   Send,
   Check,
   X,
-  ExternalLink
+  ExternalLink,
+  LayoutGrid,
+  List,
+  MessageCircle
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; icon: any }> = {
@@ -33,6 +36,7 @@ export default function ClientViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
+  const [viewMode, setViewMode] = useState<'gallery' | 'table'>('gallery');
   
   const [commentingRow, setCommentingRow] = useState<number | null>(null);
   const [commentText, setCommentText] = useState('');
@@ -114,8 +118,8 @@ export default function ClientViewPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header Premium */}
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200">
               <Instagram size={22} />
@@ -144,46 +148,69 @@ export default function ClientViewPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        {/* Navigation Tabs */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="inline-flex rounded-xl bg-slate-200/50 p-1 p-1">
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
-                activeTab === 'pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              À valider <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[10px]">{stats.pending}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
-                activeTab === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Tout voir
-            </button>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {/* Navigation Tabs and View Switching */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="inline-flex rounded-xl bg-slate-200/50 p-1">
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                  activeTab === 'pending' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                À valider <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[10px]">{stats.pending}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+                  activeTab === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Tout voir
+              </button>
+            </div>
+
+            <div className="inline-flex rounded-xl bg-slate-200/50 p-1">
+              <button
+                onClick={() => setViewMode('gallery')}
+                className={`p-2 rounded-lg transition-all ${
+                  viewMode === 'gallery' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Vue Galerie"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-2 rounded-lg transition-all ${
+                  viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Vue Tableau (style Airtable)"
+              >
+                <List size={18} />
+              </button>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm w-fit">
             <CalendarIcon size={14} className="text-blue-500" />
             <span>Mars 2026</span>
           </div>
         </div>
 
-        {/* Content List */}
-        <div className="space-y-8">
-          {filteredEntries.length === 0 ? (
-            <div className="rounded-3xl border-2 border-dashed border-slate-200 py-20 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-                <Check size={32} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">Tout est en ordre !</h3>
-              <p className="text-slate-500">Vous avez validé tous les contenus proposés.</p>
+        {/* Content View */}
+        {filteredEntries.length === 0 ? (
+          <div className="rounded-3xl border-2 border-dashed border-slate-200 py-20 text-center bg-white">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
+              <Check size={32} />
             </div>
-          ) : (
-            filteredEntries.map((entry) => {
+            <h3 className="text-lg font-bold text-slate-900">Tout est en ordre !</h3>
+            <p className="text-slate-500">Vous avez validé tous les contenus proposés.</p>
+          </div>
+        ) : viewMode === 'gallery' ? (
+          <div className="space-y-8">
+            {filteredEntries.map((entry) => {
               const config = STATUS_CONFIG[entry.statut] || STATUS_CONFIG.brouillon;
               const StatusIcon = config.icon;
               const isActionable = entry.statut === 'brouillon' || entry.statut === 'rejeté';
@@ -284,7 +311,7 @@ export default function ClientViewPage() {
                         ) : null}
                       </div>
 
-                      {/* Comment Input Modal-like (Inline) */}
+                      {/* Comment Input */}
                       {commentingRow === entry.row && (
                         <div className="mt-6 animate-in fade-in slide-in-from-top-4 duration-300">
                           <label className="mb-2 block text-xs font-bold uppercase text-slate-400">Votre retour pour modifications :</label>
@@ -317,9 +344,138 @@ export default function ClientViewPage() {
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          /* Table View (Airtable Style) */
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50 transition-colors">
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Visual</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">Date & Type</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 min-w-[200px]">Sujet & Légende</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Statut</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredEntries.map((entry) => {
+                  const config = STATUS_CONFIG[entry.statut] || STATUS_CONFIG.brouillon;
+                  const StatusIcon = config.icon;
+                  const isActionable = entry.statut === 'brouillon' || entry.statut === 'rejeté';
+
+                  return (
+                    <tr key={entry.row} className="transition-colors hover:bg-slate-50/30">
+                      <td className="px-5 py-4">
+                        <div className="h-14 w-14 overflow-hidden rounded-lg bg-slate-100 border border-slate-200">
+                          {entry.image_url ? (
+                            <img src={entry.image_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-slate-300">
+                              <ImageIcon size={20} />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-bold text-slate-900 whitespace-nowrap">{entry.date}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{entry.type}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="max-w-[300px] lg:max-w-md">
+                          <h4 className="text-sm font-bold text-slate-900 mb-1 line-clamp-1">{entry.titre}</h4>
+                          <p className="text-sm text-slate-500 line-clamp-2">{entry.legende}</p>
+                          {entry.feedback && (
+                            <div className="mt-2 flex items-center gap-2 text-[11px] text-amber-600 bg-amber-50 rounded px-2 py-0.5 w-fit">
+                              <MessageCircle size={10} /> {entry.feedback}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className={`flex items-center gap-1.5 w-fit rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm ${config.color}`}>
+                          <StatusIcon size={12} />
+                          {config.label}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {isActionable ? (
+                            <>
+                              <button 
+                                onClick={() => handleAction(entry.row!, { statut: 'validé' })}
+                                className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                title="Approuver"
+                              >
+                                <Check size={16} />
+                              </button>
+                              <button 
+                                onClick={() => setCommentingRow(entry.row!)}
+                                className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                title="Commenter"
+                              >
+                                <MessageSquare size={16} />
+                              </button>
+                            </>
+                          ) : entry.statut === 'validé' ? (
+                            <button 
+                              onClick={() => handleAction(entry.row!, { statut: 'rejeté' })}
+                              className="p-1 text-[10px] font-bold uppercase text-slate-300 hover:text-rose-500 transition-colors"
+                            >
+                              Annuler ?
+                            </button>
+                          ) : null}
+                        </div>
+                        {/* Inline comment for table view */}
+                        {commentingRow === entry.row && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                            <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200">
+                              <div className="mb-4 flex items-center gap-3">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                  <MessageSquare size={20} />
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-slate-900">Retour client</h3>
+                                  <p className="text-xs text-slate-500">{entry.titre}</p>
+                                </div>
+                              </div>
+                              <textarea
+                                autoFocus
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                placeholder="Que souhaiteriez-vous changer ?"
+                                className="w-full rounded-2xl border-2 border-slate-100 bg-white p-4 text-sm focus:border-blue-600 focus:outline-none transition-all"
+                                rows={4}
+                              />
+                              <div className="mt-6 flex gap-3">
+                                <button
+                                  onClick={() => handleAction(entry.row!, { feedback: commentText, statut: 'rejeté' })}
+                                  disabled={!commentText.trim() || !!submitting}
+                                  className="flex-1 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/10 hover:bg-blue-700 disabled:opacity-50 transition-all"
+                                >
+                                  Envoyer les modifications
+                                </button>
+                                <button
+                                  onClick={() => { setCommentingRow(null); setCommentText(''); }}
+                                  className="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-600 hover:bg-slate-200 transition-all"
+                                >
+                                  Fermer
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
 
       <footer className="mt-20 border-t border-slate-200 bg-white py-12 text-center text-slate-400">
