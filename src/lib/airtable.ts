@@ -38,6 +38,8 @@ const FIELD_MAP = {
   'Client': 'client',
   'persona': 'persona',
   'Profil JSON': 'profil_json',
+  'Script': 'script',
+  'Images de Carrousel': 'extra_images',
 } as const;
 
 // Status mapping: PostInsta -> Airtable
@@ -105,6 +107,8 @@ function recordToEntry(record: { id: string; fields: Record<string, unknown> }):
     statut: STATUS_FROM_AIRTABLE[rawStatus] || 'brouillon' as CalendarEntry['statut'],
     feedback: (getF(['Feedback', 'Commentaires']) as string) || '',
     visuels_client: clientUrls,
+    script: (getF(['Script', 'Storyboard', 'Scénario']) as string || '').trim(),
+    extra_images: (getF(['Images de Carrousel', 'Slides']) as string || '').split(';').filter(Boolean),
   };
   
   return entry;
@@ -300,6 +304,8 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
         'statut': STATUS_TO_AIRTABLE[e.statut] || 'brouillons',
         'Client': clientName || clientSlug,
         'Feedback': e.feedback || '',
+        'Script': e.script || '',
+        'Images de Carrousel': (e.extra_images || []).join(';'),
       },
     }));
 
@@ -344,6 +350,8 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
   if (data.type !== undefined) fields['Type de publication'] = data.type;
   if (data.theme !== undefined) fields['thème'] = data.theme;
   if (data.date !== undefined) fields['date de publication'] = `${data.date}T12:00:00.000Z`;
+  if (data.script !== undefined) fields['Script'] = data.script;
+  if (data.extra_images !== undefined) fields['Images de Carrousel'] = data.extra_images.join(';');
 
   await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}/${airtableId}`, {
     method: 'PATCH',
