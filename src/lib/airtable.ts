@@ -222,7 +222,6 @@ export async function readProfile(clientSlug: string, clientName?: string): Prom
     themes_recurrents: '',
     hashtags_base: '',
     cta_style: '',
-    canva_template_id: '',
   };
 }
 

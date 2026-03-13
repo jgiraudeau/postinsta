@@ -18,7 +18,6 @@ const FIELDS: { key: keyof ClientProfile; label: string; placeholder: string; mu
   { key: 'themes_recurrents', label: 'Thèmes récurrents', placeholder: 'Ex: Recettes, Coulisses, Saison' },
   { key: 'hashtags_base', label: 'Hashtags de base', placeholder: 'Ex: #boulangerie #artisan #painmaison' },
   { key: 'cta_style', label: 'Style de CTA', placeholder: 'Ex: Question engageante, invitation à visiter' },
-  { key: 'canva_template_id', label: 'ID Modèle Canva (Carrousels)', placeholder: 'Ex: DAG... ou URL du modèle' },
 ];
 
 const emptyProfile = (): ClientProfile =>
@@ -29,6 +28,7 @@ export default function NewClientPage() {
   const [profile, setProfile] = useState<ClientProfile>(emptyProfile());
   const [source, setSource] = useState<'sheets' | 'airtable'>('sheets');
   const [airtableUrl, setAirtableUrl] = useState('');
+  const [canvaId, setCanvaId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,7 +53,7 @@ export default function NewClientPage() {
         name: profile.nom_client, 
         profile, 
         source,
-        airtableInterfaceUrl: airtableUrl 
+        airtableInterfaceUrl: airtableUrl,
       }),
     });
 
@@ -96,6 +96,18 @@ export default function NewClientPage() {
             <p className="mt-1 text-xs text-gray-500 italic">Lien direct vers l'Interface Designer ou une vue partagée pour le client.</p>
           </div>
         )}
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-blue-700">ID Modèle Canva (Carrousels)</label>
+          <input
+            type="text"
+            value={canvaId}
+            onChange={(e) => setCanvaId(e.target.value)}
+            placeholder="Ex: DAG... ou URL du modèle"
+            className="w-full rounded-lg border border-blue-200 bg-blue-50/30 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <p className="mt-1 text-xs text-gray-500 italic">ID du template Canva pour générer les carrousels.</p>
+        </div>
 
         {FIELDS.map((field) => (
           <div key={field.key}>

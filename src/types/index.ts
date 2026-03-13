@@ -9,6 +9,7 @@ export interface Client {
   createdAt: string;
   source?: 'sheets' | 'airtable';
   airtableInterfaceUrl?: string;
+  canva_template_id?: string;
 }
 
 export interface ClientProfile {
@@ -25,7 +26,6 @@ export interface ClientProfile {
   themes_recurrents: string;
   hashtags_base: string;
   cta_style: string;
-  canva_template_id: string;
 }
 
 export interface CalendarEntry {

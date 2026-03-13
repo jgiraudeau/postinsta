@@ -23,6 +23,7 @@ export default function ClientDetailPage() {
   
   const [editingUrl, setEditingUrl] = useState(false);
   const [newUrl, setNewUrl] = useState('');
+  const [newCanvaId, setNewCanvaId] = useState('');
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function ClientDetailPage() {
         setProfile(data.profile);
         setCalendar(data.calendar || []);
         setNewUrl(data.client?.airtableInterfaceUrl || '');
+        setNewCanvaId(data.client?.canva_template_id || '');
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -45,10 +47,10 @@ export default function ClientDetailPage() {
       const res = await fetch(`/api/clients/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ airtableInterfaceUrl: newUrl }),
+        body: JSON.stringify({ airtableInterfaceUrl: newUrl, canva_template_id: newCanvaId }),
       });
       if (res.ok) {
-        setClient({ ...client, airtableInterfaceUrl: newUrl });
+        setClient({ ...client, airtableInterfaceUrl: newUrl, canva_template_id: newCanvaId });
         setEditingUrl(false);
       }
     } catch (err) {
@@ -179,12 +181,19 @@ export default function ClientDetailPage() {
               </div>
               
               {editingUrl ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <input
                     type="text"
                     value={newUrl}
                     onChange={(e) => setNewUrl(e.target.value)}
-                    placeholder="Lien Airtable..."
+                    placeholder="Lien interface Airtable..."
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={newCanvaId}
+                    onChange={(e) => setNewCanvaId(e.target.value)}
+                    placeholder="ID Modèle Canva..."
                     className="w-full rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   />
                   <div className="flex gap-2">
@@ -204,19 +213,36 @@ export default function ClientDetailPage() {
                   </div>
                 </div>
               ) : (
-                client.airtableInterfaceUrl ? (
-                  <a 
-                    href={client.airtableInterfaceUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="flex items-center gap-2 text-sm text-orange-600 hover:underline break-all bg-orange-50 p-2 rounded-lg border border-orange-100"
-                  >
-                    <ExternalLink size={14} />
-                    Ouvrir l'interface
-                  </a>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">Aucune URL configurée. Le client n'aura pas le bouton "Vue Airtable".</p>
-                )
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Interface Airtable</p>
+                    {client.airtableInterfaceUrl ? (
+                      <a 
+                        href={client.airtableInterfaceUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-center gap-2 text-sm text-orange-600 hover:underline break-all bg-orange-50 p-2 rounded-lg border border-orange-100"
+                      >
+                        <ExternalLink size={14} />
+                        Afficher l'interface
+                      </a>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">Non configurée</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-gray-400 mb-1">Modèle Canva</p>
+                    {client.canva_template_id ? (
+                      <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-100">
+                        <span className="bg-blue-600 text-white text-[9px] font-bold px-1 rounded">CANVA</span>
+                        <span className="font-mono text-xs overflow-hidden text-ellipsis">{client.canva_template_id}</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">Non configuré</p>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>

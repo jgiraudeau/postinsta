@@ -29,7 +29,7 @@ export async function getClients(userId?: string): Promise<Client[]> {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: 'Clients!A2:H',
+    range: 'Clients!A2:I',
   });
   const rows = res.data.values || [];
   const clients = rows.map((row) => ({
@@ -41,6 +41,7 @@ export async function getClients(userId?: string): Promise<Client[]> {
     userId: row[5] || '',
     source: (row[6] as 'sheets' | 'airtable') || 'sheets',
     airtableInterfaceUrl: row[7] || '',
+    canva_template_id: row[8] || '',
   }));
 
   if (userId) {
@@ -53,7 +54,7 @@ export async function addClient(client: Client): Promise<void> {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: 'Clients!A:H',
+    range: 'Clients!A:I',
     valueInputOption: 'RAW',
     requestBody: {
       values: [[
@@ -64,7 +65,8 @@ export async function addClient(client: Client): Promise<void> {
         client.createdAt, 
         client.userId, 
         client.source || 'sheets',
-        client.airtableInterfaceUrl || ''
+        client.airtableInterfaceUrl || '',
+        client.canva_template_id || ''
       ]],
     },
   });
@@ -98,12 +100,13 @@ export async function updateClientById(id: string, updates: Partial<Client>): Pr
     updated.createdAt,
     updated.userId,
     updated.source || 'sheets',
-    updated.airtableInterfaceUrl || ''
+    updated.airtableInterfaceUrl || '',
+    updated.canva_template_id || ''
   ]];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `Clients!A${rowNumber}:H${rowNumber}`,
+    range: `Clients!A${rowNumber}:I${rowNumber}`,
     valueInputOption: 'RAW',
     requestBody: { values },
   });

@@ -40,14 +40,14 @@ export async function PATCH(
   try {
     const user = await requireAuth();
     const { id } = await params;
-    const { airtableInterfaceUrl } = await request.json();
+    const { airtableInterfaceUrl, canva_template_id } = await request.json();
 
     const hasAccess = await db.canAccessClient(id, user.userId, user.role === 'ADMIN');
     if (!hasAccess) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
-    await db.updateClient(id, { airtableInterfaceUrl });
+    await db.updateClient(id, { airtableInterfaceUrl, canva_template_id });
 
     return NextResponse.json({ success: true });
   } catch (error) {
