@@ -80,6 +80,35 @@ export async function getClientById(id: string): Promise<Client | null> {
   return clients.find((c) => c.id === id) ?? null;
 }
 
+export async function updateClientById(id: string, updates: Partial<Client>): Promise<void> {
+  const sheets = getSheets();
+  const clients = await getClients();
+  const index = clients.findIndex((c) => c.id === id);
+  if (index === -1) throw new Error('Client non trouvé');
+
+  const rowNumber = index + 2; // +1 pour header, +1 pour 1-based indexing
+  const current = clients[index];
+  const updated = { ...current, ...updates };
+
+  const values = [[
+    updated.id,
+    updated.name,
+    updated.sheetId,
+    updated.viewToken,
+    updated.createdAt,
+    updated.userId,
+    updated.source || 'sheets',
+    updated.airtableInterfaceUrl || ''
+  ]];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID,
+    range: `Clients!A${rowNumber}:H${rowNumber}`,
+    valueInputOption: 'RAW',
+    requestBody: { values },
+  });
+}
+
 export async function canAccessClient(clientId: string, userId: string, isAdmin: boolean): Promise<boolean> {
   if (isAdmin) return true;
   const client = await getClientById(clientId);

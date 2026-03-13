@@ -3,6 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { 
+  ImageIcon, 
+  ChevronRight, 
+  Send, 
+  Check, 
+  X, 
+  ExternalLink, 
+  Edit2 
+} from 'lucide-react';
 import type { Client, ClientProfile, CalendarEntry } from '@/types';
 
 export default function ClientDetailPage() {
@@ -11,6 +20,10 @@ export default function ClientDetailPage() {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
   const [calendar, setCalendar] = useState<CalendarEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [newUrl, setNewUrl] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     fetch(`/api/clients/${id}`)
@@ -19,10 +32,31 @@ export default function ClientDetailPage() {
         setClient(data.client);
         setProfile(data.profile);
         setCalendar(data.calendar || []);
+        setNewUrl(data.client?.airtableInterfaceUrl || '');
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [id]);
+
+  async function updateAirtableUrl() {
+    if (!client) return;
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ airtableInterfaceUrl: newUrl }),
+      });
+      if (res.ok) {
+        setClient({ ...client, airtableInterfaceUrl: newUrl });
+        setEditingUrl(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   if (loading) return <div className="p-8 text-gray-500">Chargement...</div>;
   if (!client) return <div className="p-8 text-red-500">Client non trouvé</div>;
@@ -75,7 +109,7 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-4 gap-4">
+      <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total posts', value: stats.total, color: 'bg-gray-100' },
           { label: 'Brouillons', value: stats.brouillon, color: 'bg-yellow-50' },
@@ -89,32 +123,98 @@ export default function ClientDetailPage() {
         ))}
       </div>
 
-      {profile && (
-        <div className="rounded-xl border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold">Profil</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {Object.entries(profile).map(([key, value]) =>
-              value ? (
-                <div key={key}>
-                  <p className="text-xs font-medium uppercase text-gray-400">{key.replace(/_/g, ' ')}</p>
-                  <p className="text-sm">{value}</p>
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          {profile && (
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-lg font-semibold">Profil Marketing</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Object.entries(profile).map(([key, value]) =>
+                  value ? (
+                    <div key={key}>
+                      <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider font-mono">{key.replace(/_/g, ' ')}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed">{value}</p>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold">Liens & Partage</h2>
+            
+            <div className="mb-6">
+              <p className="text-xs font-bold uppercase text-gray-400 mb-2">Lien de partage client</p>
+              <div className="flex items-center gap-2 rounded-lg bg-blue-50 p-3 border border-blue-100">
+                <code className="text-xs text-blue-700 font-bold overflow-hidden text-ellipsis">/view/{client.viewToken}</code>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/view/${client.viewToken}`);
+                    alert('Lien copié !');
+                  }}
+                  className="shrink-0 text-blue-600 hover:text-blue-800"
+                >
+                  <Edit2 size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                 <p className="text-xs font-bold uppercase text-gray-400">URL Interface Airtable</p>
+                 {!editingUrl && (
+                   <button onClick={() => setEditingUrl(true)} className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs">
+                     <Edit2 size={12} /> {client.airtableInterfaceUrl ? 'Modifier' : 'Ajouter'}
+                   </button>
+                 )}
+              </div>
+              
+              {editingUrl ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={newUrl}
+                    onChange={(e) => setNewUrl(e.target.value)}
+                    placeholder="Lien Airtable..."
+                    className="w-full rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={updateAirtableUrl}
+                      disabled={updating}
+                      className="flex-1 rounded-lg bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {updating ? '...' : 'Enregistrer'}
+                    </button>
+                    <button 
+                      onClick={() => setEditingUrl(false)}
+                      className="flex-1 rounded-lg bg-gray-100 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200"
+                    >
+                      Annuler
+                    </button>
+                  </div>
                 </div>
-              ) : null
-            )}
+              ) : (
+                client.airtableInterfaceUrl ? (
+                  <a 
+                    href={client.airtableInterfaceUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="flex items-center gap-2 text-sm text-orange-600 hover:underline break-all bg-orange-50 p-2 rounded-lg border border-orange-100"
+                  >
+                    <ExternalLink size={14} />
+                    Ouvrir l'interface
+                  </a>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Aucune URL configurée. Le client n'aura pas le bouton "Vue Airtable".</p>
+                )
+              )}
+            </div>
           </div>
         </div>
-      )}
-
-      <div className="mt-6 rounded-xl border bg-white p-4">
-        <code className="mt-1 block text-sm text-blue-600">/view/{client.viewToken}</code>
-        {client.airtableInterfaceUrl && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-sm text-gray-500">Interface Airtable Client :</p>
-            <a href={client.airtableInterfaceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block text-sm text-orange-600 hover:underline">
-              {client.airtableInterfaceUrl}
-            </a>
-          </div>
-        )}
       </div>
     </div>
   );

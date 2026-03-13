@@ -32,3 +32,29 @@ export async function GET(
     return NextResponse.json({ error: 'Erreur' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireAuth();
+    const { id } = await params;
+    const { airtableInterfaceUrl } = await request.json();
+
+    const hasAccess = await db.canAccessClient(id, user.userId, user.role === 'ADMIN');
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    }
+
+    await db.updateClient(id, { airtableInterfaceUrl });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+    console.error('Error updating client:', error);
+    return NextResponse.json({ error: 'Erreur' }, { status: 500 });
+  }
+}

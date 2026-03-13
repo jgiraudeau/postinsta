@@ -13,6 +13,10 @@ export async function getClientById(id: string): Promise<Client | null> {
   return sheets.getClientById(id);
 }
 
+export async function updateClient(id: string, updates: Partial<Client>): Promise<void> {
+  return sheets.updateClientById(id, updates);
+}
+
 export async function getClientByToken(token: string): Promise<Client | null> {
   return sheets.getClientByToken(token);
 }
