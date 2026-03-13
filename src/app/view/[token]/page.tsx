@@ -249,7 +249,7 @@ export default function ClientViewPage() {
                               disabled={!!submitting}
                               className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:-translate-y-0.5 disabled:opacity-50"
                             >
-                              <Check size={18} /> Approver
+                              <Check size={18} /> Approuver
                             </button>
                             <button
                               onClick={() => setCommentingRow(entry.row!)}
