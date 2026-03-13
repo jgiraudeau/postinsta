@@ -15,11 +15,13 @@ export async function GET(
     }
 
     const calendar = await db.readCalendar(client);
+    const profile = await db.readProfile(client);
 
     return NextResponse.json({ 
       calendar, 
       clientName: client.name,
-      airtableInterfaceUrl: client.airtableInterfaceUrl 
+      airtableInterfaceUrl: client.airtableInterfaceUrl,
+      profile
     });
   } catch (error) {
     console.error('Error fetching calendar:', error);

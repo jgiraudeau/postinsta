@@ -35,6 +35,7 @@ export default function ClientViewPage() {
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [clientName, setClientName] = useState('');
   const [airtableInterfaceUrl, setAirtableInterfaceUrl] = useState('');
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
@@ -54,6 +55,7 @@ export default function ClientViewPage() {
         setEntries(data.calendar || []);
         setClientName(data.clientName || 'Client');
         setAirtableInterfaceUrl(data.airtableInterfaceUrl || '');
+        setProfile(data.profile || null);
         setLoading(false);
       })
       .catch((err) => {
@@ -288,10 +290,38 @@ export default function ClientViewPage() {
                         </div>
                       )}
 
-                      {/* Carousel Indicator */}
+                      {/* Carousel Indicator & Canva Integration */}
                       {entry.type === 'carousel' && (
-                        <div className="mb-6 flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 w-fit px-3 py-1 rounded-full border border-slate-100">
-                          <LayoutGrid size={12} /> Format Carrousel (slides multiples)
+                        <div className="mb-6 space-y-3">
+                          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 w-fit px-3 py-1 rounded-full border border-slate-100">
+                             <LayoutGrid size={12} /> Format Carrousel (slides multiples)
+                          </div>
+                          
+                          {profile?.canva_template_id && (
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <a 
+                                href={profile.canva_template_id.startsWith('http') ? profile.canva_template_id : `https://www.canva.com/brand/templates/${profile.canva_template_id}/edit`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#00C4CC] to-[#7d2ae8] px-4 py-3 text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all border border-white/10"
+                              >
+                                <ImageIcon size={18} />
+                                Ouvrir dans Canva
+                              </a>
+                              <button 
+                                onClick={() => {
+                                  const slides = entry.image_prompt.split(/Slide \d+\s*:/i).filter(s => s.trim().length > 0);
+                                  const csv = "Slide,Contenu\n" + slides.map((s, i) => `${i+1},"${s.trim().replace(/"/g, '""')}"`).join("\n");
+                                  navigator.clipboard.writeText(csv);
+                                  alert("Données des slides copiées au format CSV pour l'Autofill Canva !");
+                                }}
+                                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-[#7d2ae8] border-2 border-[#7d2ae8]/20 font-bold text-sm hover:bg-slate-50 transition-all"
+                              >
+                                <List size={18} />
+                                Copier pour l'Autofill
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
 

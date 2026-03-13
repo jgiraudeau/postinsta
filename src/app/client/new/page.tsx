@@ -18,6 +18,7 @@ const FIELDS: { key: keyof ClientProfile; label: string; placeholder: string; mu
   { key: 'themes_recurrents', label: 'Thèmes récurrents', placeholder: 'Ex: Recettes, Coulisses, Saison' },
   { key: 'hashtags_base', label: 'Hashtags de base', placeholder: 'Ex: #boulangerie #artisan #painmaison' },
   { key: 'cta_style', label: 'Style de CTA', placeholder: 'Ex: Question engageante, invitation à visiter' },
+  { key: 'canva_template_id', label: 'ID Modèle Canva (Carrousels)', placeholder: 'Ex: DAG... ou URL du modèle' },
 ];
 
 const emptyProfile = (): ClientProfile =>

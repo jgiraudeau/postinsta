@@ -131,9 +131,15 @@ export default function ClientDetailPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {Object.entries(profile).map(([key, value]) =>
                   value ? (
-                    <div key={key}>
-                      <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider font-mono">{key.replace(/_/g, ' ')}</p>
-                      <p className="text-sm text-gray-700 leading-relaxed">{value}</p>
+                    <div key={key} className="p-3 rounded-lg bg-slate-50/50 border border-slate-100">
+                      <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider font-mono mb-1">{key.replace(/_/g, ' ')}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                        {key === 'canva_template_id' ? (
+                          <span className="flex items-center gap-2 text-blue-600">
+                            <span className="bg-blue-100 px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700">CANVA</span> {value}
+                          </span>
+                        ) : value}
+                      </p>
                     </div>
                   ) : null
                 )}
