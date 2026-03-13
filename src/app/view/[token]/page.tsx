@@ -53,7 +53,7 @@ export default function ClientViewPage() {
       });
   }, [token]);
 
-  async function handleAction(row: number, updates: { statut?: string; feedback?: string }) {
+  async function handleAction(row: number, updates: { statut?: CalendarEntry['statut']; feedback?: string }) {
     setSubmitting(row);
     try {
       const res = await fetch('/api/feedback', {
