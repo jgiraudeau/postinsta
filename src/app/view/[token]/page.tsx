@@ -308,17 +308,17 @@ export default function ClientViewPage() {
                                 <ImageIcon size={18} />
                                 Ouvrir dans Canva
                               </a>
-                              <button 
+                              <button
                                 onClick={() => {
                                   const slides = entry.image_prompt.split(/Slide \d+\s*:/i).filter(s => s.trim().length > 0);
-                                  const csv = "Slide,Contenu\n" + slides.map((s, i) => `${i+1},"${s.trim().replace(/"/g, '""')}"`).join("\n");
-                                  navigator.clipboard.writeText(csv);
-                                  alert("Données des slides copiées au format CSV pour l'Autofill Canva !");
+                                  const text = slides.map((s, i) => `Slide ${i+1} : ${s.trim()}`).join("\n\n");
+                                  navigator.clipboard.writeText(text);
+                                  alert("Contenu des slides copié !");
                                 }}
                                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-[#7d2ae8] border-2 border-[#7d2ae8]/20 font-bold text-sm hover:bg-slate-50 transition-all"
                               >
                                 <List size={18} />
-                                Copier pour l'Autofill
+                                Copier le contenu des slides
                               </button>
                             </div>
                           )}
