@@ -36,3 +36,39 @@ export async function generateImage(
 
   throw new Error('Aucune image dans la réponse Gemini');
 }
+
+// Génère toutes les slides d'un carrousel
+export async function generateCarouselImages(
+  profile: ClientProfile,
+  entry: CalendarEntry,
+  clientSlug: string
+): Promise<{ imageUrl: string; extraImages: string[] }> {
+  // Parse les slides depuis le image_prompt
+  const slideTexts = entry.image_prompt
+    .split(/Slide\s+\d+\s*(?:\([^)]*\))?\s*:/i)
+    .filter(s => s.trim().length > 0);
+
+  const allUrls: string[] = [];
+
+  for (let i = 0; i < slideTexts.length; i++) {
+    console.log(`[Carousel] Generating slide ${i + 1}/${slideTexts.length}...`);
+
+    // Créer une entrée temporaire avec le prompt d'une seule slide
+    const slideEntry: CalendarEntry = {
+      ...entry,
+      image_prompt: `Slide ${i + 1} d'un carrousel Instagram : ${slideTexts[i].trim()}`,
+    };
+
+    const url = await generateImage(profile, slideEntry, clientSlug);
+    allUrls.push(url);
+  }
+
+  if (allUrls.length === 0) {
+    throw new Error('Aucune slide générée pour le carrousel');
+  }
+
+  return {
+    imageUrl: allUrls[0],
+    extraImages: allUrls.slice(1),
+  };
+}

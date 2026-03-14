@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
-import { generateImage } from '@/lib/image-gen';
+import { generateImage, generateCarouselImages } from '@/lib/image-gen';
 
 export const maxDuration = 60;
 
@@ -31,27 +31,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Post non trouvé ou déjà généré' }, { status: 404 });
     }
 
-    console.log(`[API] Generating image for row ${entry.row}...`);
-    let imageUrl;
+    console.log(`[API] Generating image for row ${entry.row} (type: ${entry.type})...`);
     try {
-      imageUrl = await generateImage(profile, entry, client.sheetId);
+      if (entry.type === 'carousel') {
+        // Carrousel : générer toutes les slides
+        const { imageUrl, extraImages } = await generateCarouselImages(profile, entry, client.sheetId);
+        console.log(`[API] Carousel generated: ${1 + extraImages.length} slides. Updating database...`);
+        await db.updateEntry(client, entry.row!, { image_url: imageUrl, extra_images: extraImages });
+        return NextResponse.json({ row: entry.row, image_url: imageUrl, extra_images: extraImages });
+      } else {
+        // Post simple : une seule image
+        const imageUrl = await generateImage(profile, entry, client.sheetId);
+        console.log(`[API] Image generated: ${imageUrl}. Updating database...`);
+        await db.updateEntry(client, entry.row!, { image_url: imageUrl });
+        return NextResponse.json({ row: entry.row, image_url: imageUrl });
+      }
     } catch (genError: any) {
-      console.error('[API] Gemini generation failed:', genError);
-      return NextResponse.json({ error: `Erreur Gemini: ${genError.message}` }, { status: 500 });
+      console.error('[API] Generation failed:', genError);
+      return NextResponse.json({ error: `Erreur génération: ${genError.message}` }, { status: 500 });
     }
-
-    console.log(`[API] Image generated: ${imageUrl}. Updating database...`);
-    try {
-      await db.updateEntry(client, entry.row!, { image_url: imageUrl });
-    } catch (dbError: any) {
-      console.error('[API] Database update failed:', dbError);
-      return NextResponse.json({ 
-        error: `Erreur base de données: ${dbError.message}`,
-        details: "Si vous êtes en local avec Airtable, l'envoi d'images locales ('/images/...') peut échouer car Airtable ne peut pas les télécharger."
-      }, { status: 500 });
-    }
-
-    return NextResponse.json({ row: entry.row, image_url: imageUrl });
   } catch (error) {
     console.error('Error generating image details:', error);
     if (error instanceof Error) {

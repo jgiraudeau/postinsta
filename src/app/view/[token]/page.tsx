@@ -11,6 +11,7 @@ import {
   Instagram, 
   Clock, 
   Image as ImageIcon,
+  ChevronLeft,
   ChevronRight,
   Send,
   Check,
@@ -41,6 +42,7 @@ export default function ClientViewPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
   const [viewMode, setViewMode] = useState<'gallery' | 'table'>('gallery');
   
+  const [carouselIndex, setCarouselIndex] = useState<Record<number, number>>({});
   const [commentingRow, setCommentingRow] = useState<number | null>(null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState<number | null>(null); // row number
@@ -228,26 +230,68 @@ export default function ClientViewPage() {
                 >
                   <div className="flex flex-col md:flex-row">
                     {/* Visual Section */}
-                    <div className={`relative ${entry.type === 'story' || entry.type === 'reel' ? 'aspect-[9/16]' : 'aspect-square'} w-full md:w-80 shrink-0 bg-slate-100 overflow-hidden`}>
-                      {entry.image_url ? (
-                        <img
-                          src={entry.image_url}
-                          alt={entry.titre}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full flex-col items-center justify-center text-slate-400">
-                          <ImageIcon size={48} strokeWidth={1} />
-                          <p className="mt-2 text-xs font-medium">Visuel en cours</p>
+                    {(() => {
+                      const allImages = entry.image_url
+                        ? [entry.image_url, ...(entry.extra_images || [])]
+                        : [];
+                      const currentSlide = carouselIndex[entry.row ?? 0] || 0;
+                      const totalSlides = allImages.length;
+
+                      return (
+                        <div className={`relative ${entry.type === 'story' || entry.type === 'reel' ? 'aspect-[9/16]' : 'aspect-square'} w-full md:w-80 shrink-0 bg-slate-100 overflow-hidden`}>
+                          {allImages.length > 0 ? (
+                            <img
+                              src={allImages[currentSlide]}
+                              alt={`${entry.titre} - slide ${currentSlide + 1}`}
+                              className="h-full w-full object-cover transition-all duration-300"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full flex-col items-center justify-center text-slate-400">
+                              <ImageIcon size={48} strokeWidth={1} />
+                              <p className="mt-2 text-xs font-medium">Visuel en cours</p>
+                            </div>
+                          )}
+
+                          {/* Carousel Navigation */}
+                          {totalSlides > 1 && (
+                            <>
+                              <button
+                                onClick={() => setCarouselIndex(prev => ({ ...prev, [entry.row ?? 0]: (currentSlide - 1 + totalSlides) % totalSlides }))}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-all"
+                              >
+                                <ChevronLeft size={16} />
+                              </button>
+                              <button
+                                onClick={() => setCarouselIndex(prev => ({ ...prev, [entry.row ?? 0]: (currentSlide + 1) % totalSlides }))}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-all"
+                              >
+                                <ChevronRight size={16} />
+                              </button>
+                              {/* Slide counter */}
+                              <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm">
+                                {currentSlide + 1}/{totalSlides}
+                              </div>
+                              {/* Dots */}
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                                {allImages.map((_, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setCarouselIndex(prev => ({ ...prev, [entry.row ?? 0]: i }))}
+                                    className={`w-2 h-2 rounded-full transition-all ${i === currentSlide ? 'bg-white scale-125' : 'bg-white/50'}`}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
+
+                          {/* Floating Badge */}
+                          <div className={`absolute left-4 top-4 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm ${config.color}`}>
+                            <StatusIcon size={12} />
+                            {config.label}
+                          </div>
                         </div>
-                      )}
-                      
-                      {/* Floating Badge */}
-                      <div className={`absolute left-4 top-4 flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm ${config.color}`}>
-                        <StatusIcon size={12} />
-                        {config.label}
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Content Section */}
                     <div className="flex flex-1 flex-col p-6 sm:p-8">
