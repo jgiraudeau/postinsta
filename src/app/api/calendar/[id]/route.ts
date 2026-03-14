@@ -17,10 +17,11 @@ export async function GET(
     const calendar = await db.readCalendar(client);
     const profile = await db.readProfile(client);
 
-    return NextResponse.json({ 
-      calendar, 
+    return NextResponse.json({
+      calendar,
       clientName: client.name,
       airtableInterfaceUrl: client.airtableInterfaceUrl,
+      canva_template_id: client.canva_template_id,
       profile
     });
   } catch (error) {

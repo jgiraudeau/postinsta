@@ -35,7 +35,7 @@ export default function ClientViewPage() {
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [clientName, setClientName] = useState('');
   const [airtableInterfaceUrl, setAirtableInterfaceUrl] = useState('');
-  const [profile, setProfile] = useState<any>(null);
+  const [canvaTemplateId, setCanvaTemplateId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
@@ -55,7 +55,7 @@ export default function ClientViewPage() {
         setEntries(data.calendar || []);
         setClientName(data.clientName || 'Client');
         setAirtableInterfaceUrl(data.airtableInterfaceUrl || '');
-        setProfile(data.profile || null);
+        setCanvaTemplateId(data.canva_template_id || '');
         setLoading(false);
       })
       .catch((err) => {
@@ -297,10 +297,10 @@ export default function ClientViewPage() {
                              <LayoutGrid size={12} /> Format Carrousel (slides multiples)
                           </div>
                           
-                          {profile?.canva_template_id && (
+                          {canvaTemplateId && (
                             <div className="flex flex-col sm:flex-row gap-2">
-                              <a 
-                                href={profile.canva_template_id.startsWith('http') ? profile.canva_template_id : `https://www.canva.com/brand/templates/${profile.canva_template_id}/edit`}
+                              <a
+                                href={canvaTemplateId.startsWith('http') ? canvaTemplateId : `https://www.canva.com/brand/templates/${canvaTemplateId}/edit`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#00C4CC] to-[#7d2ae8] px-4 py-3 text-white font-bold text-sm shadow-lg hover:opacity-90 transition-all border border-white/10"
