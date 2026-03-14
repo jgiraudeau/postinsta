@@ -5,6 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 
 type Step = 'idle' | 'calendar' | 'captions' | 'images';
 
+function getDefaultDates() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const fourWeeks = new Date(tomorrow);
+  fourWeeks.setDate(fourWeeks.getDate() + 27);
+  return {
+    start: tomorrow.toISOString().split('T')[0],
+    end: fourWeeks.toISOString().split('T')[0],
+  };
+}
+
 export default function GeneratePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -15,6 +26,10 @@ export default function GeneratePage() {
   const [result, setResult] = useState('');
   const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const defaults = getDefaultDates();
+  const [startDate, setStartDate] = useState(defaults.start);
+  const [endDate, setEndDate] = useState(defaults.end);
 
   useEffect(() => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -109,7 +124,7 @@ export default function GeneratePage() {
       const res = await fetch('/api/generate/calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: id }),
+        body: JSON.stringify({ clientId: id, startDate, endDate }),
         signal: controller.signal,
       });
 
@@ -128,7 +143,7 @@ export default function GeneratePage() {
         throw new Error(data.error || 'Erreur de génération');
       }
 
-      setResult(`Terminé ! ${data.count || 0} posts planifiés.`);
+      setResult(`Terminé ! ${data.count || 0} posts planifiés du ${startDate} au ${endDate}.`);
       setProgress('');
       setStep('idle');
     } catch (err) {
@@ -154,8 +169,33 @@ export default function GeneratePage() {
         <div className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-semibold">1. Calendrier éditorial</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Génère les thèmes, titres et dates pour le mois à venir
+            Génère les thèmes, titres et dates pour la période choisie
           </p>
+          <p className="mt-1 text-xs text-amber-600">
+            Les posts validés ou publiés existants seront conservés. Seuls les brouillons dans la période seront remplacés.
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Date de début</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Date de fin</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="rounded-lg border px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
           <button
             onClick={() => generateCalendar()}
             disabled={step !== 'idle'}

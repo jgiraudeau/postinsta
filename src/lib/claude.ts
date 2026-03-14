@@ -7,8 +7,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function generateCalendar(profile: ClientProfile): Promise<CalendarEntry[]> {
-  const prompt = calendarPrompt(profile);
+export async function generateCalendar(profile: ClientProfile, startDate: string, endDate: string): Promise<CalendarEntry[]> {
+  const prompt = calendarPrompt(profile, startDate, endDate);
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',

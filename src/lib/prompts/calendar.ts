@@ -1,9 +1,9 @@
 import type { ClientProfile } from '@/types';
 
-export function calendarPrompt(profile: ClientProfile): string {
+export function calendarPrompt(profile: ClientProfile, startDate: string, endDate: string): string {
   return `Tu es un expert en stratégie de contenu Instagram.
 
-Génère un calendrier éditorial pour 1 mois (4 semaines) pour ce client :
+Génère un calendrier éditorial du ${startDate} au ${endDate} pour ce client :
 
 **Client** : ${profile.nom_client}
 **Secteur** : ${profile.secteur}
@@ -48,5 +48,5 @@ Règles :
 - Privilégie les descriptions visuelles (scènes, objets, ambiances). 
 - ÉVITE le texte incrusté dans les images autant que possible. Si du texte est indispensable (ex: titre, mot-clé), garde-le extrêmement court (1 à 3 mots maximum) pour éviter les fautes d'orthographe de l'IA.
 - Les image_prompt doivent être détaillés, visuels et adaptés au secteur du client
-- Les dates commencent à partir de demain`;
+- Les dates doivent être comprises entre le ${startDate} et le ${endDate} (format YYYY-MM-DD)`;
 }

@@ -61,6 +61,13 @@ export async function writeCalendar(client: Client, entries: CalendarEntry[]): P
   return sheets.writeCalendar(client.sheetId, entries);
 }
 
+export async function deleteDraftEntries(client: Client, startDate: string, endDate: string): Promise<void> {
+  if (client.source === 'airtable') {
+    return airtable.deleteDraftEntries(client.sheetId, startDate, endDate, client.name);
+  }
+  return sheets.deleteDraftEntries(client.sheetId, startDate, endDate);
+}
+
 export async function updateEntry(client: Client, row: number, data: Partial<CalendarEntry>): Promise<void> {
   if (client.source === 'airtable') {
     return airtable.updateEntry(client.sheetId, row, data, client.name);
