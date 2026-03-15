@@ -209,14 +209,15 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
 
 export async function deleteDraftEntries(clientSlug: string, startDate: string, endDate: string): Promise<void> {
   const existing = await readCalendar(clientSlug);
+  if (existing.length === 0) return;
   const kept = existing.filter(e => {
-    // Keep entries outside the date range OR not in "brouillon" status
     if (e.statut !== 'brouillon') return true;
     if (e.date < startDate || e.date > endDate) return true;
     return false;
   });
-  // Rewrite the sheet with only the kept entries
-  await writeCalendar(clientSlug, kept);
+  if (kept.length !== existing.length) {
+    await writeCalendar(clientSlug, kept);
+  }
 }
 
 export async function updateEntry(clientSlug: string, row: number, data: Partial<CalendarEntry>): Promise<void> {

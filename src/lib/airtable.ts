@@ -317,28 +317,32 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
 }
 
 export async function deleteDraftEntries(clientSlug: string, startDate: string, endDate: string, clientName?: string): Promise<void> {
-  const identifiers = [clientSlug];
-  if (clientName) identifiers.push(clientName);
+  try {
+    const identifiers = [clientSlug];
+    if (clientName) identifiers.push(clientName);
 
-  const conditions = identifiers.map(id => `{Client}="${id}"`);
-  const formula = encodeURIComponent(
-    `AND(OR(${conditions.join(',')}),{statut}="brouillons",IS_AFTER({date de publication},"${startDate}T00:00:00.000Z"),IS_BEFORE({date de publication},"${endDate}T23:59:59.000Z"))`
-  );
+    const conditions = identifiers.map(id => `{Client}="${id}"`);
+    const formula = encodeURIComponent(
+      `AND(OR(${conditions.join(',')}),{statut}="brouillons",{date de publication}!="",IS_AFTER({date de publication},"${startDate}T00:00:00.000Z"),IS_BEFORE({date de publication},"${endDate}T23:59:59.000Z"))`
+    );
 
-  const data = await airtableFetch(
-    `${BASE_ID}/${CALENDAR_TABLE_ID}?filterByFormula=${formula}`
-  );
+    const data = await airtableFetch(
+      `${BASE_ID}/${CALENDAR_TABLE_ID}?filterByFormula=${formula}`
+    );
 
-  if (data.records.length === 0) return;
+    if (data.records.length === 0) return;
 
-  // Delete in batches of 10
-  const batchSize = 10;
-  for (let i = 0; i < data.records.length; i += batchSize) {
-    const batch = data.records.slice(i, i + batchSize);
-    const ids = batch.map((r: { id: string }) => `records[]=${r.id}`).join('&');
-    await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}?${ids}`, {
-      method: 'DELETE',
-    });
+    // Delete in batches of 10
+    const batchSize = 10;
+    for (let i = 0; i < data.records.length; i += batchSize) {
+      const batch = data.records.slice(i, i + batchSize);
+      const ids = batch.map((r: { id: string }) => `records[]=${r.id}`).join('&');
+      await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}?${ids}`, {
+        method: 'DELETE',
+      });
+    }
+  } catch (err) {
+    console.error('[Airtable] deleteDraftEntries failed (continuing):', err);
   }
 }
 
