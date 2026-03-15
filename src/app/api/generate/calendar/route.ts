@@ -42,6 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ entries, count: entries.length });
   } catch (error) {
     console.error('Error generating calendar:', error);
-    return NextResponse.json({ error: 'Erreur lors de la génération du calendrier' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    return NextResponse.json({ error: `Erreur calendrier : ${message}` }, { status: 500 });
   }
 }
