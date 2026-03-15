@@ -320,7 +320,7 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
         });
         break;
       } catch (err: any) {
-        const match = err?.message?.match(/Unknown field name: "([^"]+)"/);
+        const match = err?.message?.match(/Unknown field name: \\?"([^"]+)\\?"/);
         if (match) {
           console.warn(`[Airtable] Field "${match[1]}" not found, retrying without it`);
           recordsToSend = recordsToSend.map(r => {
@@ -413,7 +413,7 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
       });
       return;
     } catch (err: any) {
-      const match = err?.message?.match(/Unknown field name: "([^"]+)"/);
+      const match = err?.message?.match(/Unknown field name: \\?"([^"]+)\\?"/);
       if (match) {
         console.warn(`[Airtable] Field "${match[1]}" not found, retrying without it`);
         delete fieldsToSend[match[1]];
