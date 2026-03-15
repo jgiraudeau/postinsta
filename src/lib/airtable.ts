@@ -310,10 +310,29 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
       return { fields };
     });
 
-    await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}`, {
-      method: 'POST',
-      body: JSON.stringify({ typecast: true, records }),
-    });
+    // Retry logic: remove unknown fields if Airtable rejects them
+    let recordsToSend = records;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}`, {
+          method: 'POST',
+          body: JSON.stringify({ typecast: true, records: recordsToSend }),
+        });
+        break;
+      } catch (err: any) {
+        const match = err?.message?.match(/Unknown field name: "([^"]+)"/);
+        if (match) {
+          console.warn(`[Airtable] Field "${match[1]}" not found, retrying without it`);
+          recordsToSend = recordsToSend.map(r => {
+            const fields = { ...r.fields };
+            delete fields[match[1]];
+            return { fields };
+          });
+        } else {
+          throw err;
+        }
+      }
+    }
   }
 }
 
@@ -384,10 +403,25 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
   if (data.script !== undefined) fields['Script'] = data.script;
   if (data.extra_images !== undefined) fields['Images de Carrousel'] = data.extra_images.join(';');
 
-  await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}/${airtableId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ typecast: true, fields }),
-  });
+  // Retry logic: remove unknown fields if Airtable rejects them
+  let fieldsToSend = { ...fields };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}/${airtableId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ typecast: true, fields: fieldsToSend }),
+      });
+      return;
+    } catch (err: any) {
+      const match = err?.message?.match(/Unknown field name: "([^"]+)"/);
+      if (match) {
+        console.warn(`[Airtable] Field "${match[1]}" not found, retrying without it`);
+        delete fieldsToSend[match[1]];
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 // === Création client (compatibilité) ===
