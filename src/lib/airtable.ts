@@ -292,8 +292,8 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
 
   for (let i = 0; i < entries.length; i += batchSize) {
     const batch = entries.slice(i, i + batchSize);
-    const records = batch.map(e => ({
-      fields: {
+    const records = batch.map(e => {
+      const fields: Record<string, string | undefined> = {
         'Sujet du post': e.titre,
         'date de publication': e.date ? `${e.date}T12:00:00.000Z` : undefined,
         'Type de publication': e.type || 'post',
@@ -303,11 +303,12 @@ export async function writeCalendar(clientSlug: string, entries: CalendarEntry[]
         'Image Prompt': e.image_prompt,
         'statut': STATUS_TO_AIRTABLE[e.statut] || 'brouillons',
         'Client': clientName || clientSlug,
-        'Feedback': e.feedback || '',
-        'Script': e.script || '',
-        'Images de Carrousel': (e.extra_images || []).join(';'),
-      },
-    }));
+      };
+      if (e.feedback) fields['Feedback'] = e.feedback;
+      if (e.script) fields['Script'] = e.script;
+      if (e.extra_images?.length) fields['Images de Carrousel'] = e.extra_images.join(';');
+      return { fields };
+    });
 
     await airtableFetch(`${BASE_ID}/${CALENDAR_TABLE_ID}`, {
       method: 'POST',
