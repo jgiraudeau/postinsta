@@ -244,6 +244,15 @@ export default function ClientViewPage() {
                               src={allImages[currentSlide]}
                               alt={`${entry.titre} - slide ${currentSlide + 1}`}
                               className="h-full w-full object-cover transition-all duration-300"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'text-slate-400 text-center';
+                                placeholder.innerHTML = '<p class="text-xs">Image indisponible</p>';
+                                target.parentElement?.appendChild(placeholder);
+                              }}
                             />
                           ) : (
                             <div className="flex h-full w-full flex-col items-center justify-center text-slate-400">

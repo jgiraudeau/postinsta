@@ -90,6 +90,51 @@ export default function GeneratePage() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({ error: 'Erreur serveur' }));
           console.error(`Erreur ${type} row ${item.row}:`, data.error);
+        } else if (type === 'images') {
+          const data = await res.json();
+
+          // Carrousel : générer les slides une par une
+          if (data.isCarousel && data.totalSlides > 1) {
+            const slideUrls: string[] = [];
+
+            for (let s = 0; s < data.totalSlides; s++) {
+              setProgress(`Carrousel "${item.titre}" — slide ${s + 1}/${data.totalSlides}...`);
+
+              try {
+                const slideRes = await fetch('/api/generate/images/slide', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ clientId: id, row: item.row, slideIndex: s, totalSlides: data.totalSlides }),
+                });
+
+                if (slideRes.ok) {
+                  const slideData = await slideRes.json();
+                  slideUrls.push(slideData.imageUrl);
+                } else {
+                  const slideErr = await slideRes.json().catch(() => ({ error: 'Erreur slide' }));
+                  console.error(`Erreur slide ${s + 1}:`, slideErr.error);
+                }
+              } catch (slideError) {
+                console.error(`Erreur slide ${s + 1}:`, slideError);
+              }
+
+              // Petit délai entre les slides pour le rate limiting
+              await new Promise(r => setTimeout(r, 500));
+            }
+
+            // Sauvegarder toutes les URLs dans Airtable
+            if (slideUrls.length > 0) {
+              try {
+                await fetch('/api/generate/images/slide', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ clientId: id, row: item.row, urls: slideUrls }),
+                });
+              } catch (saveErr) {
+                console.error('Erreur sauvegarde carrousel:', saveErr);
+              }
+            }
+          }
         }
 
         done++;
