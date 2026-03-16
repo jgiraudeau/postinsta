@@ -80,10 +80,13 @@ function recordToEntry(record: { id: string; fields: Record<string, unknown> }):
     (recordToEntry as any)._logged = true;
   }
 
-  // Extract images
+  // Extract images - prefer permanent text URL over Airtable attachment (which expires)
+  const permanentUrl = getF(['Image URL']) as string;
   const images = getF(['Image', 'Images', 'Visuel']) as any;
   const imageUrls: string[] = [];
-  if (Array.isArray(images)) {
+  if (permanentUrl) {
+    imageUrls.push(permanentUrl);
+  } else if (Array.isArray(images)) {
     images.forEach(img => { if (img.url) imageUrls.push(img.url); });
   } else if (typeof images === 'string') {
     imageUrls.push(images);
@@ -384,13 +387,14 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
   if (data.image_url !== undefined) {
     const urls = data.image_url.split(',').filter(Boolean);
     const publicUrls = urls.filter(url => url.startsWith('http'));
-    
+
     if (publicUrls.length > 0) {
-      // Airtable requires public URLs for attachments
+      // Airtable attachment (visual preview in Airtable UI)
       fields['Image'] = publicUrls.map(url => ({ url }));
+      // Also store permanent URL in text field for reliable access
+      fields['Image URL'] = publicUrls[0];
     } else if (urls.length > 0) {
-      console.warn(`[Airtable] Local image URLs detected (${urls.join(',')}). Skipping attachment upload because Airtable cannot reach localhost.`);
-      // Optional: if you have a text field for the path, you could use it here.
+      console.warn(`[Airtable] Local image URLs detected (${urls.join(',')}). Skipping attachment upload.`);
     }
   }
   if (data.image_prompt !== undefined) fields['Image Prompt'] = data.image_prompt;
