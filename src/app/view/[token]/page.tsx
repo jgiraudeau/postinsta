@@ -125,7 +125,7 @@ export default function ClientViewPage() {
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Header Premium */}
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200">
               <Instagram size={22} />
@@ -154,7 +154,7 @@ export default function ClientViewPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {/* Navigation Tabs and View Switching */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
@@ -238,7 +238,7 @@ export default function ClientViewPage() {
                       const totalSlides = allImages.length;
 
                       return (
-                        <div className={`relative ${entry.type === 'story' || entry.type === 'reel' ? 'aspect-[9/16]' : 'aspect-square'} w-full md:w-80 shrink-0 bg-slate-100 overflow-hidden`}>
+                        <div className={`relative ${entry.type === 'story' || entry.type === 'reel' ? 'aspect-[9/16]' : 'aspect-square'} w-full md:w-96 lg:w-[28rem] shrink-0 bg-slate-100 overflow-hidden`}>
                           {allImages.length > 0 ? (
                             <img
                               src={allImages[currentSlide]}
@@ -266,15 +266,15 @@ export default function ClientViewPage() {
                             <>
                               <button
                                 onClick={() => setCarouselIndex(prev => ({ ...prev, [entry.row ?? 0]: (currentSlide - 1 + totalSlides) % totalSlides }))}
-                                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-all"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:bg-white hover:scale-110 transition-all"
                               >
-                                <ChevronLeft size={16} />
+                                <ChevronLeft size={20} />
                               </button>
                               <button
                                 onClick={() => setCarouselIndex(prev => ({ ...prev, [entry.row ?? 0]: (currentSlide + 1) % totalSlides }))}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-all"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg hover:bg-white hover:scale-110 transition-all"
                               >
-                                <ChevronRight size={16} />
+                                <ChevronRight size={20} />
                               </button>
                               {/* Slide counter */}
                               <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded-full backdrop-blur-sm">
