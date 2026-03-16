@@ -12,29 +12,42 @@ export async function generateImage(
 ): Promise<string> {
   const prompt = imagePrompt(profile, entry);
 
-  const isVertical = entry.type === 'story' || entry.type === 'reel';
+  // Retry up to 3 times if Gemini doesn't return an image
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await genai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: prompt,
+        config: {
+          responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+      });
 
-  const response = await genai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: prompt,
-    config: {
-      responseModalities: [Modality.IMAGE, Modality.TEXT],
-    },
-  });
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (!parts) {
+        console.warn(`[ImageGen] Attempt ${attempt}: no parts in response`);
+        continue;
+      }
 
-  // Extract image from response
-  const parts = response.candidates?.[0]?.content?.parts;
-  if (!parts) throw new Error('Aucune image générée');
+      for (const part of parts) {
+        if (part.inlineData?.mimeType?.startsWith('image/')) {
+          const buffer = Buffer.from(part.inlineData.data!, 'base64');
+          const filename = `${clientSlug}_${entry.date}_${Date.now()}.png`;
+          return saveImage(buffer, filename);
+        }
+      }
 
-  for (const part of parts) {
-    if (part.inlineData?.mimeType?.startsWith('image/')) {
-      const buffer = Buffer.from(part.inlineData.data!, 'base64');
-      const filename = `${clientSlug}_${entry.date}_${Date.now()}.png`;
-      return saveImage(buffer, filename);
+      console.warn(`[ImageGen] Attempt ${attempt}: no image in response parts`);
+    } catch (err) {
+      console.warn(`[ImageGen] Attempt ${attempt} failed:`, err);
+      if (attempt === 3) throw err;
     }
+
+    // Wait before retry
+    await new Promise(r => setTimeout(r, 2000));
   }
 
-  throw new Error('Aucune image dans la réponse Gemini');
+  throw new Error('Aucune image après 3 tentatives Gemini');
 }
 
 // Génère toutes les slides d'un carrousel
@@ -49,18 +62,27 @@ export async function generateCarouselImages(
     .filter(s => s.trim().length > 0);
 
   const allUrls: string[] = [];
+  const totalSlides = slideTexts.length || 1;
 
-  for (let i = 0; i < slideTexts.length; i++) {
-    console.log(`[Carousel] Generating slide ${i + 1}/${slideTexts.length}...`);
+  for (let i = 0; i < totalSlides; i++) {
+    console.log(`[Carousel] Generating slide ${i + 1}/${totalSlides}...`);
 
-    // Créer une entrée temporaire avec le prompt d'une seule slide
+    const slidePrompt = slideTexts[i]
+      ? `Slide ${i + 1} d'un carrousel Instagram : ${slideTexts[i].trim()}`
+      : entry.image_prompt;
+
     const slideEntry: CalendarEntry = {
       ...entry,
-      image_prompt: `Slide ${i + 1} d'un carrousel Instagram : ${slideTexts[i].trim()}`,
+      image_prompt: slidePrompt,
     };
 
-    const url = await generateImage(profile, slideEntry, clientSlug);
-    allUrls.push(url);
+    try {
+      const url = await generateImage(profile, slideEntry, clientSlug);
+      allUrls.push(url);
+    } catch (err) {
+      console.error(`[Carousel] Slide ${i + 1} failed:`, err);
+      // Continue with other slides instead of aborting entirely
+    }
   }
 
   if (allUrls.length === 0) {

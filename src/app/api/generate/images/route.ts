@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import * as db from '@/lib/db';
 import { generateImage, generateCarouselImages } from '@/lib/image-gen';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // POST avec { clientId } → retourne la liste des posts à générer
 // POST avec { clientId, row } → génère UNE seule image pour ce row
