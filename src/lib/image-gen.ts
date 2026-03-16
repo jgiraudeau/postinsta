@@ -50,26 +50,55 @@ export async function generateImage(
   throw new Error('Aucune image après 3 tentatives Gemini');
 }
 
+// Parse le image_prompt d'un carrousel en slides individuelles
+function parseSlides(prompt: string): string[] {
+  // Try multiple patterns for slide separation
+  const patterns = [
+    /Slide\s*\d+\s*(?:\([^)]*\))?\s*[:\-–]/gi,   // "Slide 1 :", "Slide 1 -", "Slide1:"
+    /\d+\s*[.)\-–]\s*/g,                            // "1. ", "1) ", "1 - "
+  ];
+
+  for (const pattern of patterns) {
+    const parts = prompt.split(pattern).filter(s => s.trim().length > 0);
+    if (parts.length >= 2) {
+      console.log(`[Carousel] Parsed ${parts.length} slides with pattern ${pattern}`);
+      return parts;
+    }
+  }
+
+  console.warn(`[Carousel] Could not parse slides from prompt, will generate 4 variations`);
+  console.warn(`[Carousel] Prompt was: ${prompt.substring(0, 200)}...`);
+  return [];
+}
+
 // Génère toutes les slides d'un carrousel
 export async function generateCarouselImages(
   profile: ClientProfile,
   entry: CalendarEntry,
   clientSlug: string
 ): Promise<{ imageUrl: string; extraImages: string[] }> {
-  // Parse les slides depuis le image_prompt
-  const slideTexts = entry.image_prompt
-    .split(/Slide\s+\d+\s*(?:\([^)]*\))?\s*:/i)
-    .filter(s => s.trim().length > 0);
+  const slideTexts = parseSlides(entry.image_prompt);
+
+  // If parsing found slides, use them. Otherwise generate 4 slides from the global prompt.
+  const totalSlides = slideTexts.length >= 2 ? slideTexts.length : 4;
+
+  console.log(`[Carousel] Will generate ${totalSlides} slides for "${entry.titre}"`);
 
   const allUrls: string[] = [];
-  const totalSlides = slideTexts.length || 1;
 
   for (let i = 0; i < totalSlides; i++) {
     console.log(`[Carousel] Generating slide ${i + 1}/${totalSlides}...`);
 
-    const slidePrompt = slideTexts[i]
-      ? `Slide ${i + 1} d'un carrousel Instagram : ${slideTexts[i].trim()}`
-      : entry.image_prompt;
+    let slidePrompt: string;
+    if (slideTexts[i]) {
+      slidePrompt = `Slide ${i + 1} d'un carrousel Instagram (${totalSlides} slides au total) : ${slideTexts[i].trim()}`;
+    } else {
+      // Fallback : generate distinct slides from the global prompt
+      const slideRole = i === 0 ? 'couverture accrocheuse avec le titre'
+        : i === totalSlides - 1 ? 'slide finale avec call-to-action'
+        : `slide ${i + 1} avec un point clé différent`;
+      slidePrompt = `Slide ${i + 1}/${totalSlides} d'un carrousel Instagram. Rôle : ${slideRole}. Sujet : ${entry.image_prompt}`;
+    }
 
     const slideEntry: CalendarEntry = {
       ...entry,
@@ -81,7 +110,6 @@ export async function generateCarouselImages(
       allUrls.push(url);
     } catch (err) {
       console.error(`[Carousel] Slide ${i + 1} failed:`, err);
-      // Continue with other slides instead of aborting entirely
     }
   }
 
