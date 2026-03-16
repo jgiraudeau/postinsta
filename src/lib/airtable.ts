@@ -385,16 +385,17 @@ export async function updateEntry(clientSlug: string, row: number, data: Partial
   if (data.legende !== undefined) fields['contenu'] = data.legende;
   if (data.hashtags !== undefined) fields['Hashtags'] = data.hashtags;
   if (data.image_url !== undefined) {
-    const urls = data.image_url.split(',').filter(Boolean);
-    const publicUrls = urls.filter(url => url.startsWith('http'));
+    const mainUrls = data.image_url.split(',').filter(Boolean).filter(url => url.startsWith('http'));
+    const extraUrls = (data.extra_images || []).filter(url => url.startsWith('http'));
+    const allPublicUrls = [...mainUrls, ...extraUrls];
 
-    if (publicUrls.length > 0) {
-      // Airtable attachment (visual preview in Airtable UI)
-      fields['Image'] = publicUrls.map(url => ({ url }));
-      // Also store permanent URL in text field for reliable access
-      fields['Image URL'] = publicUrls[0];
-    } else if (urls.length > 0) {
-      console.warn(`[Airtable] Local image URLs detected (${urls.join(',')}). Skipping attachment upload.`);
+    if (allPublicUrls.length > 0) {
+      // Airtable attachment — toutes les images (principale + carrousel) visibles dans Airtable
+      fields['Image'] = allPublicUrls.map(url => ({ url }));
+      // Permanent text URL for reliable access in the app
+      fields['Image URL'] = mainUrls[0];
+    } else if (mainUrls.length === 0 && data.image_url) {
+      console.warn(`[Airtable] Local image URLs detected. Skipping attachment upload.`);
     }
   }
   if (data.image_prompt !== undefined) fields['Image Prompt'] = data.image_prompt;
